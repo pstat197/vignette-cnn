@@ -1,0 +1,287 @@
+---
+title: "janice"
+author: "Janice Jiang"
+date: "2025-12-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(keras)
+library(tensorflow)
+library(ggplot2)
+library(caret)
+library(dplyr)
+library(reticulate)
+library(pROC)
+library(readr)
+library(fs)
+library(rsample)
+library(tidyverse)
+
+# Set random seeds for reproducibility
+set.seed(11272025)
+tensorflow::set_random_seed(11272025)
+
+tryCatch({
+  pd <- import("pandas")
+  cat("Pandas is available in Python environment\n")
+}, error = function(e) {
+  cat("Pandas is NOT available. Installing...\n")
+  # Try to install pandas
+  tryCatch({
+    virtualenv_install("r-tensorflow", "pandas")
+    cat("Pandas installed successfully\n")
+  }, error = function(e2) {
+    cat("Could not install pandas automatically. Please run:\n")
+    cat("reticulate::virtualenv_install('pandas', envname = 'r-tensorflow')\n")
+    cat("Then restart R session and try again.\n")
+    stop("Pandas installation required")
+  })
+})
+```
+
+```{r}
+# 1. DATA LOADING AND PREPARATION
+# =================================
+
+# Load metadata
+# Note: The dataset shows it should be a CSV file, not .xls
+metadata <- read_csv("data/metadata.csv.xls") 
+
+# Preview the data
+cat("Dataset structure:\n")
+str(metadata)
+cat("\nFirst few rows:\n")
+head(metadata)
+cat("\nColumn names:\n")
+colnames(metadata)
+
+# Check class distribution
+cat("\nClass distribution:\n")
+table(metadata$class)
+
+# Create numeric labels
+metadata <- metadata %>%
+  mutate(class = if_else(class == "tumor", "Cancer", "Not Cancer"))
+
+# Split data with 80% training and 20% testing
+train_index <- createDataPartition(metadata$class, p = 0.8, list = FALSE)
+
+train_data <- metadata[train_index, ]
+test_data  <- metadata[-train_index, ]
+
+# Check sizes
+cat("\nTraining set size:", nrow(train_data))
+cat("\nTest set size:", nrow(test_data))
+```
+
+```{r}
+# 2. CREATE DIRECTORY STRUCTURE FOR IMAGES
+# ========================================
+
+# Create directories (if they don't exist)
+dir_create("data/train_images", showWarnings = FALSE)
+dir_create("data/test_images", showWarnings = FALSE)
+
+# Copy images to respective folders
+
+# Copy training images
+for (i in 1:nrow(train_data)) {
+  # Adjust the path based on your actual image location
+  # Assuming the metadata has an 'Image' column with filenames
+  img_file <- paste0("data/ori_image/", train_data$image[i])
+  if (file_exists(img_file)) {
+    file_copy(
+      path = img_file,
+      new_path = paste0("data/train_images/", train_data$image[i])
+    )
+  }
+}
+  
+# Copy test images
+for (i in 1:nrow(test_data)) {
+  img_file <- paste0("data/ori_image/", test_data$image[i])
+  if (file_exists(img_file)) {
+    file_copy(
+      path = img_file,
+      new_path = paste0("data/test_images/", test_data$image[i])
+    )
+  }
+}
+```
+
+```{r}
+# 3. CREATE IMAGE GENERATORS
+# ================================================
+
+# Set image parameters
+img_height <- 224
+img_width  <- 224
+batch_size <- 32
+
+# Create image generators WITHOUT augmentation
+# Only rescaling to normalize pixel values to [0, 1]
+train_datagen <- image_data_generator(rescale = 1/255)
+test_datagen <- image_data_generator(rescale = 1/255)
+
+# Create training data flow
+train_flow <- flow_images_from_dataframe(
+  dataframe = train_data,
+  directory = "data/train_images",
+  x_col = "image",
+  y_col = "class",
+  generator = train_datagen,
+  target_size = c(img_height, img_width),
+  batch_size = batch_size,
+  class_mode = "binary",
+  shuffle = TRUE,
+  seed = 11272025
+)
+
+# Create test data flow
+test_flow <- flow_images_from_dataframe(
+  dataframe = test_data,
+  directory = "data/test_images",
+  x_col = "image",
+  y_col = "class",
+  generator = test_datagen,
+  target_size = c(img_height, img_width),
+  batch_size = batch_size,
+  class_mode = "binary",
+  shuffle = FALSE
+)
+```
+
+```{r}
+# 4. BUILD CNN MODEL
+# ==================
+
+cnn_model <- keras_model_sequential(list(
+  # 32 convolution filters=
+  layer_conv_2d(filters = 32, kernel_size = 3, activation = "relu",
+                input_shape = c(img_height, img_width, 3)),
+  layer_max_pooling_2d(pool_size = 2),
+  # 64 filters
+  layer_conv_2d(filters = 64, kernel_size = 3, activation = "relu"),
+  layer_max_pooling_2d(pool_size = 2),
+  # 128 filters
+  layer_conv_2d(filters = 128, kernel_size = 3, activation = "relu"),
+  layer_max_pooling_2d(pool_size = 2),
+  # Flatten and dense layers
+  layer_flatten(),
+  layer_dense(units = 128, activation = "relu"),
+  layer_dropout(rate = 0.4),
+  # Output layer
+  layer_dense(units = 1, activation = "sigmoid")
+))
+
+# Display model summary
+cat("\n=== Model Summary ===\n")
+summary(model)
+
+# 5. COMPILE MODEL
+# ================
+model$compile(
+  loss = "binary_crossentropy",
+  optimizer = optimizer_adam(learning_rate = 0.0001),
+  metrics = list("accuracy")
+)
+```
+
+```{r}
+# 6. TRAIN THE MODEL
+# ==================
+epochs <- 25
+
+# Calculate steps per epoch
+train_steps <- as.integer(ceiling(nrow(train_data) / batch_size))
+test_steps <- as.integer(ceiling(nrow(test_data) / batch_size))
+
+# Create callbacks
+callbacks <- list(
+  callback_early_stopping(
+    monitor = "val_accuracy",
+    patience = 5,
+    restore_best_weights = TRUE,
+    verbose = 1
+  ),
+  callback_reduce_lr_on_plateau(
+    monitor = "val_loss",
+    factor = 0.5,
+    patience = 3,
+    verbose = 1
+  )
+)
+
+# Create results directory
+dir_create("results", showWarnings = FALSE)
+
+# Train the model
+cat("\n=== Starting Training ===\n")
+history <- model$fit(
+   x = train_flow,
+   steps_per_epoch = train_steps,
+   epochs = as.integer(epochs),
+   validation_data = test_flow,
+   validation_steps = test_steps,
+   callbacks = callbacks,
+   verbose = 1)
+```
+
+```{r}
+# 7. VISUALIZE TRAINING HISTORY
+# =============================
+history_df <- as.data.frame(history$history) %>% mutate(epoch = 1:19)
+
+# Plot training and validation loss
+p_loss <- ggplot(history_df, aes(x = epoch)) +
+  geom_line(aes(y = loss, color = "Training Loss"), size = 1) +
+  geom_line(aes(y = val_loss, color = "Validation Loss"), size = 1) +
+  geom_point(aes(y = loss, color = "Training Loss"), size = 2) +
+  geom_point(aes(y = val_loss, color = "Validation Loss"), size = 2) +
+  geom_vline(xintercept = 14, color = "red", linetype = "dashed", size = 1) +
+  labs(title = "Model Loss", 
+       x = "Epoch", 
+       y = "Loss") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(name = "",
+                     values = c("Training Loss" = "skyblue", 
+                                "Validation Loss" = "orange"))
+
+# Plot training and validation accuracy
+p_acc <- ggplot(history_df, aes(x = epoch)) +
+  geom_line(aes(y = accuracy, color = "Training Accuracy"), size = 1) +
+  geom_line(aes(y = val_accuracy, color = "Validation Accuracy"), size = 1) +
+  geom_point(aes(y = accuracy, color = "Training Accuracy"), size = 2) +
+  geom_point(aes(y = val_accuracy, color = "Validation Accuracy"), size = 2) +
+  geom_vline(xintercept = 14, color = "red", linetype = "dashed", size = 1) +
+  labs(title = "Model Accuracy", 
+       x = "Epoch", 
+       y = "Accuracy") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(name = "",
+                     values = c("Training Accuracy" = "skyblue", 
+                                "Validation Accuracy" = "orange"))
+
+# Display plots
+print(p_loss)
+print(p_acc)
+```
+
+```{r}
+ggsave("results/training_loss.png", 
+       p_loss, width = 6, height = 4)
+ggsave("results/training_accuracy.png", 
+       p_acc, width = 6, height = 4)
+```
+
+```{r}
+
+```
+
