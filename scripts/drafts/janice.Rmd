@@ -215,9 +215,6 @@ callbacks <- list(
   )
 )
 
-# Create results directory
-dir_create("results", showWarnings = FALSE)
-
 # Train the model
 cat("\n=== Starting Training ===\n")
 history <- model$fit(
