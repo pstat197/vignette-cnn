@@ -47,10 +47,8 @@ tryCatch({
 # =================================
 
 # Load metadata
-# Note: The dataset shows it should be a CSV file, not .xls
 metadata <- read_csv("data/metadata.csv.xls") 
 
-# Preview the data
 cat("Dataset structure:\n")
 str(metadata)
 cat("\nFirst few rows:\n")
@@ -58,21 +56,18 @@ head(metadata)
 cat("\nColumn names:\n")
 colnames(metadata)
 
-# Check class distribution
 cat("\nClass distribution:\n")
 table(metadata$class)
 
-# Create numeric labels
 metadata <- metadata %>%
   mutate(class = if_else(class == "tumor", "Cancer", "Not Cancer"))
 
-# Split data with 80% training and 20% testing
+# training/testing
 train_index <- createDataPartition(metadata$class, p = 0.8, list = FALSE)
 
 train_data <- metadata[train_index, ]
 test_data  <- metadata[-train_index, ]
 
-# Check sizes
 cat("\nTraining set size:", nrow(train_data))
 cat("\nTest set size:", nrow(test_data))
 ```
@@ -81,16 +76,11 @@ cat("\nTest set size:", nrow(test_data))
 # 2. CREATE DIRECTORY STRUCTURE FOR IMAGES
 # ========================================
 
-# Create directories (if they don't exist)
 dir_create("data/train_images", showWarnings = FALSE)
 dir_create("data/test_images", showWarnings = FALSE)
 
-# Copy images to respective folders
-
 # Copy training images
 for (i in 1:nrow(train_data)) {
-  # Adjust the path based on your actual image location
-  # Assuming the metadata has an 'Image' column with filenames
   img_file <- paste0("data/ori_image/", train_data$image[i])
   if (file_exists(img_file)) {
     file_copy(
@@ -121,8 +111,6 @@ img_height <- 224
 img_width  <- 224
 batch_size <- 32
 
-# Create image generators WITHOUT augmentation
-# Only rescaling to normalize pixel values to [0, 1]
 train_datagen <- image_data_generator(rescale = 1/255)
 test_datagen <- image_data_generator(rescale = 1/255)
 
@@ -279,6 +267,61 @@ ggsave("results/training_accuracy.png",
 ```
 
 ```{r}
+# 8. EVALUATE THE MODEL
+# =====================
+# Load the best model if early stopping saved it
+if (file_exists("results/janice_cnn_model.keras")) {
+  best_model <- load_model_tf("results/janice_cnn_model.keras")
+  cat("\nLoaded best model from checkpoint\n")
+} else {
+  best_model <- model
+}
 
+# Evaluate on test data
+cat("\n=== Model Evaluation ===\n")
+evaluation <- best_model$evaluate(test_flow, steps = test_steps, verbose = 0)
+cat("Test Loss:", round(py_to_r(evaluation)[[1]], 4), "\n")
+cat("Test Accuracy:", round(py_to_r(evaluation)[[2]], 4), "\n")
+```
+
+```{r}
+# 9. MAKE PREDICTIONS AND CONFUSION MATRIX
+# =========================================
+
+# Get predictions
+cat("\nMaking predictions...\n")
+predictions <- best_model$predict(test_flow, steps = test_steps, verbose = 0)
+
+# Convert probabilities to binary predictions
+predicted_classes <- ifelse(predictions > 0.5, "Not Cancer", "Cancer")
+
+# Get true labels
+true_classes <- test_data$class
+
+# Create confusion matrix
+conf_matrix <- confusionMatrix(
+  factor(predicted_classes),
+  factor(true_classes)
+)
+
+cat("\n=== Confusion Matrix ===\n")
+print(conf_matrix)
+```
+
+```{r}
+accuracy <- conf_matrix$overall['Accuracy']
+precision <- conf_matrix$byClass['Precision']
+recall <- conf_matrix$byClass['Recall']
+f1_score <- conf_matrix$byClass['F1']
+
+cat("\n=== Detailed Metrics ===\n")
+cat("Accuracy:", round(accuracy * 100, 2), "%\n")
+cat("Precision:", round(precision * 100, 2), "%\n")
+cat("Recall:", round(recall * 100, 2), "%\n")
+cat("F1-Score:", round(f1_score * 100, 2), "%\n")
+```
+
+```{r}
+best_model$save("results/janice_cnn_model.keras")
 ```
 
