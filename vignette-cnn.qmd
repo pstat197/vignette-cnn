@@ -14,9 +14,193 @@ Authors: Lucas Childs
 
 ## Code Demo
 
-### Kaeya's Section
+### Environment / Data Setup
 
-up to line 176
+We first start by loading the libraries necessary to run a CNN.
+
+```{r}
+library(keras)
+library(tensorflow)
+library(ggplot2)
+library(caret)
+library(dplyr)
+library(reticulate)
+library(pROC)
+library(readr)
+library(fs)
+library(rsample)
+library(tidyverse)
+```
+
+We then upload the data. The dataset that we use contains labeled medical MRI brain scans used for tumor classification (binary variable). Each row represents a single image and includes ifnormation about the file including the name of the image, the class (tumor or normal), the format (png, jpeg, tif), the RGB color mode, and the shape/resolution of the image.
+
+```{r}
+metadata <- read_csv("data/metadata.csv.xls")
+head(metadata)
+colnames(metadata)
+```
+
+We split the dataset into an 80/20 train–test split.
+
+```{r}
+set.seed(11272025)
+train_index <- createDataPartition(metadata$class, p = 0.8, list = FALSE)
+train_data <- metadata[train_index, ]
+test_data  <- metadata[-train_index, ]
+nrow(train_data)
+nrow(test_data)
+```
+
+After we have split the dataset, we create directories to store our training and testing brain scan images.
+
+```{r}
+dir_create("data/images", showWarnings = FALSE)
+dir_create("data/train_images")
+dir_create("data/test_images")
+
+# Copy each file based on split into training and test sets
+
+file_copy(
+  path = paste0("data/images/", train_data$image),
+  new_path = paste0("data/train_images/", train_data$image)
+)
+
+file_copy(
+  path = paste0("data/images/", test_data$image),
+  new_path = paste0("data/test_images/", test_data$image)
+)
+```
+
+### Preprocessing
+
+Because neural networks require all input images to have the same dimensions, we resize all images to a target size of 224x224. We also set the batch size to 32. The batch size controls how many images the model processes at each training step before updating its weights. Processing the images in smaller batches helps improve training stability and efficiency.
+
+```{r}
+img_height <- 224
+img_width  <- 224
+batch_size <- 32
+```
+
+The image generator loads training images and applies data augmentation like rotating or shifting the image. Augmentation increases the diversity of the training set, helping the model avoid overfitting and improving its ability to generalize new images.
+
+```{r}
+train_gen <- image_data_generator(
+  rescale = 1/255,
+  rotation_range = 10,
+  width_shift_range = 0.1,
+  height_shift_range = 0.1,
+  horizontal_flip = TRUE
+)
+```
+
+We also create a testing generator with no augmentation of images so that the model is tested on clean data.
+
+```{r}
+test_gen <- image_data_generator(rescale = 1/255)
+```
+
+The flow_images_from_dataframe() reads in the images in batches from the training and test folders, apply the respective preprocessing (resizing and augmentation if needed), and record the corresponding true labels from the uploaded data.
+
+```{r}
+train_flow <- flow_images_from_dataframe(
+  dataframe = train_data,
+  directory = "data/train_images",
+  x_col = "image",
+  y_col = "class",
+  generator = train_gen,
+  target_size = c(img_height, img_width),
+  batch_size = batch_size,
+  class_mode = "binary"
+)
+
+# flow images from the test dataframe
+test_flow <- flow_images_from_dataframe(
+  dataframe = test_data,
+  directory = "data/test_images",
+  x_col = "image",
+  y_col = "class",
+  generator = test_gen,
+  target_size = c(img_height, img_width),
+  batch_size = batch_size,
+  class_mode = "binary",
+  shuffle = FALSE
+)
+```
+
+### Build CNN Model
+
+This CNN has three layers for feature extraction starting with simple edges/textures, and then moving to more complex patterns. After this, the model uses flatten layer and then dense layer to combine the features. There is also a dropout layer to reduce overfitting and help the model better generalize. Finally, theres a sigmoid output layer to generate aprobability between 0 and 1, allowing the model to perform binary classification.
+
+```{r}
+model <- keras_model_sequential(list(
+  # 32 convolution filters of size 3x3
+  layer_conv_2d(filters = 32, kernel_size = 3, activation = "relu",
+                input_shape = c(img_height, img_width, 3)),
+  layer_max_pooling_2d(pool_size = 2),
+  
+  # 64 filters
+  layer_conv_2d(filters = 64, kernel_size = 3, activation = "relu"),
+  layer_max_pooling_2d(pool_size = 2),
+  
+  # 128 filters
+  layer_conv_2d(filters = 128, kernel_size = 3, activation = "relu"),
+  layer_max_pooling_2d(pool_size = 2),
+  
+  # Flatten and dense layers
+  layer_flatten(),
+  layer_dense(units = 128, activation = "relu"),
+  layer_dropout(rate = 0.4),
+  
+  # Output layer
+  layer_dense(units = 1, activation = "sigmoid")
+))
+
+# Compile the model
+
+model$compile(
+  optimizer = "adam",
+  loss = "binary_crossentropy",
+  metrics = list("accuracy")
+)
+model
+```
+
+### Train CNN Model
+
+The model is then trained for 15 epochs using the training generator. During each epoch, the model is also evaluated on the test generator, and both the training loss and accuracy and test loss and accuracy are reported.
+
+```{r}
+epochs <- 15
+
+history <- model$fit(
+  train_flow,
+  steps_per_epoch = r_to_py(as.integer(ceiling(nrow(train_data) / batch_size))),
+  validation_data = test_flow,
+  validation_steps = r_to_py(as.integer(ceiling(nrow(test_data) / batch_size))),
+  epochs = r_to_py(as.integer(epochs))
+)
+
+# Convert Python history to R list
+history_values <- py_to_r(history$history)
+```
+
+We then plot the loss and accuracy for each epoch.
+
+```{r}
+plot(1:epochs, history_values$loss, type = "l", col = "blue", lwd = 2,
+     xlab = "Epoch", ylab = "Loss", ylim = range(c(history_values$loss, history_values$val_loss)))
+lines(1:epochs, history_values$val_loss, col = "red", lwd = 2)
+legend("topright", legend = c("Training Loss", "Validation Loss"),
+       col = c("blue", "red"), lwd = 2)
+```
+
+```{r}
+plot(1:epochs, history_values$accuracy, type = "l", col = "blue", lwd = 2,
+     xlab = "Epoch", ylab = "Accuracy", ylim = range(c(history_values$accuracy, history_values$val_accuracy)))
+lines(1:epochs, history_values$val_accuracy, col = "red", lwd = 2)
+legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"),
+       col = c("blue", "red"), lwd = 2)
+```
 
 ### Sophie's Section
 
