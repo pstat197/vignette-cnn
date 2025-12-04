@@ -1,3 +1,8 @@
+# -----------------------
+# 1. Libraries
+# -----------------------
+# load required libraries
+
 library(keras)
 library(tensorflow)
 library(ggplot2)
@@ -9,6 +14,8 @@ library(readr)
 library(fs)
 library(rsample)
 library(tidyverse)
+
+
 
 # load the data
 metadata <- read_csv("data/metadata.csv.xls")
@@ -149,7 +156,6 @@ history <- model$fit(
   epochs = r_to_py(as.integer(epochs))
 )
 
-plot(history)
 
 # Convert Python history to R list
 history_values <- py_to_r(history$history)
@@ -181,8 +187,9 @@ test_loss <- scores_r[[1]]
 test_accuracy <- scores_r[[2]]
 
 cat("Test loss:", test_loss, "\n")
+# 0.2428377
 cat("Test accuracy:", test_accuracy, "\n")
-
+# 0.9075081
 
 
 
@@ -196,8 +203,42 @@ pred_labels <- ifelse(pred_probs >= 0.5, 1, 0)
 
 true_labels <- test_flow$classes  # returns the true class indices
 
-table(Predicted = pred_labels, Actual = true_labels)
 
+
+# Use caret to show detailed confusion metrics (requires factor inputs)
+cm <- caret::confusionMatrix(factor(pred_labels), factor(true_labels), 
+                             positive = "1")
+
+# Plot confusion matrix heatmap using ggplot
+cm_df <- as.data.frame(cm_table)
+colnames(cm_df) <- c("Predicted", "Actual", "Freq")
+
+
+p_cm <- ggplot(cm_df, aes(x = Actual, y = Predicted, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq), color = "white", size = 6) +
+  labs(title = "Confusion Matrix", x = "Actual", y = "Predicted") +
+  theme_minimal()
+p_cm
+
+
+ggsave("img/confusion_matrix.png", plot = p_cm, width = 6, height = 5)
+
+
+
+
+
+
+# ROC and AUC 
+
+roc_obj <- roc(response = true_labels, predictor = as.numeric(pred_probs))
+auc_val <- auc(roc_obj)
+cat("AUC:", auc_val, "\n")
+# 0.9750686
+
+
+png("img/roc_curve.png", width = 900, height = 700)
+plot(roc_obj)
 
 
 
