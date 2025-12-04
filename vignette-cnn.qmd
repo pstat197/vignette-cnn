@@ -22,6 +22,28 @@ Specifically, in our brain tumor detection context, this parameter sharing featu
 
 A CNN model does not process an image all at one time. Instead, it builds a hierarchical representation through successive layers, imitating the progressive complexity of the human visual system.
 
+**Early Convolutional Layers:**
+
+The first layers are primed to learn the most basic building blocks of visual data. Their small filters act as feature detectors for simple patterns: oriented edges (horizontal, vertical, diagonal), color transitions, blobs, and basic textures. In an MRI scan, these correspond to the gradients between white matter, gray matter, and cerebrospinal fluid, or the initial texture of tissue.
+
+**Middle Convolutional Layers:**
+
+As we go deeper, the network combines the simple features from earlier layers into more complex structures. Neurons in these layers might respond to combinations of edges and textures that form shapes like curves, corners, or specific repetitive patterns. For brain tumor analysis, these layers could learn to identify common radiological "parts" such as a mass border, an enhancing rim, or patterns of edema surrounding a lesion.
+
+**Late Convolutional Layers:**
+
+The final convolutional layers assemble the mid-level parts into complete, semantically meaningful objects. Here, the feature maps become highly abstract and task-specific. A neuron might activate strongly for the overall spatial configuration and texture that defines a specific tumor type or for the distinct morphology of a tumor versus healthy tissue.
+
+**Pooling: dimentionality reduction**
+
+Pooling layers (typically Max Pooling or Average Pooling) are strategically placed between convolutional layers and serve two primary purposes.
+
+First, pooling reduces the spatial dimensions of the feature maps while preserving the most critical information. For example, a 2x2 Max Pooling operation takes the maximum value from a 2x2 grid, reducing the feature map size by 75%. This progressively decreases the number of parameters and computations in the network, controlling computational cost and mitigating overfitting.
+
+Second, by summarizing a local region, pooling makes the network less sensitive to the exact position of a feature. A small shift or distortion in the location of a detected edge pattern will likely still fall within the same pooling region, and thus the pooled output remains unchanged. This helps the network generalize better—a tumor's precise pixel location is less important than its relative structure and context.
+
+In our project, pooling is crucial. It ensures that the model focuses on the **presence of key diagnostic features** (like a tumor's enhancing region) rather than their **exact, sub-pixel coordinates**, which can vary due to differences in patient positioning or image acquisition.
+
 ## Code Demo
 
 ### Kaeya's Section
