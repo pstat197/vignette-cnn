@@ -10,17 +10,14 @@ Authors: Lucas Childs
 
 ### Lucas' Section
 
-
-
 ### Janice's Section
-
-
-
 
 ## Code Demo
 
+### Kaeya's Section
+
+up to line 176
+
 ### Sophie's Section
 
-
-
-### Kaeya's Section
+past line 176
