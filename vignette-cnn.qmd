@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-Authors: Lucas Childs
+Authors: Lucas Childs, Kaeya, Sophie, Janice
 
 The topic of our vignette is image classification in the medical setting. We'll demonstrate using a Convolutional Neural Network (CNN) to classify brain tumor X-ray images into 2 classes: `Cancer` and `Not Cancer`. This binary image classification is a classic use-case of how CNNs can be applicable in the medical setting.
 
@@ -260,7 +260,7 @@ legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"),
 
 ### Evaluating the Model
 
-```{r}
+```{r, eval=FALSE}
 scores <- model$evaluate(test_flow)
 
 # Convert Python evaluation output to R list
@@ -276,7 +276,7 @@ cat("Test accuracy:", test_accuracy, "\n")
 
 ### Confusion Matrix
 
-```{r}
+```{r, eval=FALSE}
 # Get predicted probabilities
 pred_probs <- model$predict(test_flow)
 
@@ -309,7 +309,7 @@ ggsave("img/confusion_matrix.png", plot = p_cm, width = 6, height = 5)
 
 ### ROC Curve and AUC
 
-```{r}
+```{r, eval=FALSE}
 roc_obj <- roc(response = true_labels, predictor = as.numeric(pred_probs))
 auc_val <- auc(roc_obj)
 cat("AUC:", auc_val, "\n")
@@ -324,7 +324,7 @@ plot(roc_obj)
 
 # Saving the Model
 
-```{r}
+```{r, eval=FALSE}
 dir_create("results")
 model$save("results/cnn_brain_tumor_model.keras")
 
