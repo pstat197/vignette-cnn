@@ -6,9 +6,31 @@ editor: visual
 
 Authors: Lucas Childs
 
+The topic of our vignette is image classification in the medical setting. We'll demonstrate using a Convolutional Neural Network (CNN) to classify brain tumor X-ray images into 2 classes: `Cancer` and `Not Cancer`. This binary image classification is a classic use-case of how CNNs can be applicable in the medical setting.
+
 ## Conceptual Overview
 
 ### Lucas' Section
+
+Before CNNs were developed, the standard way to use a Neural Network to train an image classifier was to flatten images into a list of pixels and pass it through a feed-forward neural network in order to predict the class of the image. However, the spatial information of the images are lost with this technique.
+
+CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They're able to process images using convolution, which uses a filter to scan one segment of the image grid at a time. The filter is a set of weights (e.g. of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features.  
+
+![](img/Convolution.png)
+
+For example, one convolutional layer in a CNN can have multiple filters, each looking to extract different aspects of the brain x-ray image (e.g. horizontal edges, vertical edges, color contrasts). The key idea is that parameters are shared: the filter with its weights is slid across the entire image, not just part of it, so these weights are essentially shared with the whole input image instead of assigning a parameter to learn each pixel of the image. Thus, convolution helps to generalize features across the whole image field making CNNs robust to variations in the location of objects and to reduce the number of trainable parameters of the Neural Network (reduction to the number of filter weights instead of learning separate weights for each location).
+
+After each convolution operation (convolutional layer of the network), nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer. 
+
+Additionally, CNNs do pooling as downsampling to reduce the size of the data, where feature maps are essentially subsampled. Each subsample is turned into a single pixel value with max pooling or average pooling, taking the maximum pixel value or average pixel value.  
+
+![](img/Pooling.png)
+
+Finally, after convolution, nonlinearity, and pooling, the final two layer of a CNN include flattening and the fully connected (or Dense) layer. Flattening takes the resulting feature maps and flattens them to a 1-dimensional vector so that they can be used by the final layer to make class predictions. The fully connected layer is fed this 1-dimensional vector and activated with the sigmoid (our use-case) or softmax functions depending on binary or multiclass classification.
+
+![](img/CNN.png)
+
+Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as state of the art. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).
 
 ### Janice's Section
 
