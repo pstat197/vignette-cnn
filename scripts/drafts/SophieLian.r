@@ -236,9 +236,11 @@ auc_val <- auc(roc_obj)
 cat("AUC:", auc_val, "\n")
 # 0.9750686
 
-
-png("img/roc_curve.png", width = 900, height = 700)
-plot(roc_obj)
+png("img/roc_curve.png", width = 900, height = 700)  # open PNG device
+plot(roc_obj, col = "#2C3E50", lwd = 4, 
+     main = paste0("ROC Curve (AUC = ", round(auc_val, 3), ")"))
+grid()  # optional grid lines
+dev.off()  # close device
 
 
 
