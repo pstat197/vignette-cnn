@@ -1,0 +1,7 @@
+---
+title: "vignette-cnn.qmd"
+format: html
+editor: visual
+---
+
+Authors: Lucas Childs
