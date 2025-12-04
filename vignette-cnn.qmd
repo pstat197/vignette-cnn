@@ -14,15 +14,15 @@ The topic of our vignette is image classification in the medical setting. We'll 
 
 Before CNNs were developed, the standard way to use a Neural Network to train an image classifier was to flatten images into a list of pixels and pass it through a feed-forward neural network in order to predict the class of the image. However, the spatial information of the images are lost with this technique.
 
-CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They're able to process images using convolution, which uses a filter to scan one segment of the image grid at a time. The filter is a set of weights (e.g. of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features.  
+CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They're able to process images using convolution, which uses a filter to scan one segment of the image grid at a time. The filter is a set of weights (e.g. of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features.
 
 ![](img/Convolution.png)
 
 For example, one convolutional layer in a CNN can have multiple filters, each looking to extract different aspects of the brain x-ray image (e.g. horizontal edges, vertical edges, color contrasts). The key idea is that parameters are shared: the filter with its weights is slid across the entire image, not just part of it, so these weights are essentially shared with the whole input image instead of assigning a parameter to learn each pixel of the image. Thus, convolution helps to generalize features across the whole image field making CNNs robust to variations in the location of objects and to reduce the number of trainable parameters of the Neural Network (reduction to the number of filter weights instead of learning separate weights for each location).
 
-After each convolution operation (convolutional layer of the network), nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer. 
+After each convolution operation (convolutional layer of the network), nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer.
 
-Additionally, CNNs do pooling as downsampling to reduce the size of the data, where feature maps are essentially subsampled. Each subsample is turned into a single pixel value with max pooling or average pooling, taking the maximum pixel value or average pixel value.  
+Additionally, CNNs do pooling as downsampling to reduce the size of the data, where feature maps are essentially subsampled. Each subsample is turned into a single pixel value with max pooling or average pooling, taking the maximum pixel value or average pixel value.
 
 ![](img/Pooling.png)
 
@@ -72,7 +72,7 @@ In our project, pooling is crucial. It ensures that the model focuses on the **p
 
 We first start by loading the libraries necessary to run a CNN.
 
-```{r}
+```{r, eval=FALSE}
 library(keras)
 library(tensorflow)
 library(ggplot2)
@@ -88,7 +88,7 @@ library(tidyverse)
 
 We then upload the data. The dataset that we use contains labeled medical MRI brain scans used for tumor classification (binary variable). Each row represents a single image and includes ifnormation about the file including the name of the image, the class (tumor or normal), the format (png, jpeg, tif), the RGB color mode, and the shape/resolution of the image.
 
-```{r}
+```{r, eval=FALSE}
 metadata <- read_csv("data/metadata.csv.xls")
 head(metadata)
 colnames(metadata)
@@ -96,7 +96,7 @@ colnames(metadata)
 
 We split the dataset into an 80/20 train–test split.
 
-```{r}
+```{r, eval=FALSE}
 set.seed(11272025)
 train_index <- createDataPartition(metadata$class, p = 0.8, list = FALSE)
 train_data <- metadata[train_index, ]
@@ -107,7 +107,7 @@ nrow(test_data)
 
 After we have split the dataset, we create directories to store our training and testing brain scan images.
 
-```{r}
+```{r, eval=FALSE}
 dir_create("data/images", showWarnings = FALSE)
 dir_create("data/train_images")
 dir_create("data/test_images")
@@ -129,7 +129,7 @@ file_copy(
 
 Because neural networks require all input images to have the same dimensions, we resize all images to a target size of 224x224. We also set the batch size to 32. The batch size controls how many images the model processes at each training step before updating its weights. Processing the images in smaller batches helps improve training stability and efficiency.
 
-```{r}
+```{r, eval=FALSE}
 img_height <- 224
 img_width  <- 224
 batch_size <- 32
@@ -137,7 +137,7 @@ batch_size <- 32
 
 The image generator loads training images and applies data augmentation like rotating or shifting the image. Augmentation increases the diversity of the training set, helping the model avoid overfitting and improving its ability to generalize new images.
 
-```{r}
+```{r, eval=FALSE}
 train_gen <- image_data_generator(
   rescale = 1/255,
   rotation_range = 10,
@@ -149,13 +149,13 @@ train_gen <- image_data_generator(
 
 We also create a testing generator with no augmentation of images so that the model is tested on clean data.
 
-```{r}
+```{r, eval=FALSE}
 test_gen <- image_data_generator(rescale = 1/255)
 ```
 
 The flow_images_from_dataframe() reads in the images in batches from the training and test folders, apply the respective preprocessing (resizing and augmentation if needed), and record the corresponding true labels from the uploaded data.
 
-```{r}
+```{r, eval=FALSE}
 train_flow <- flow_images_from_dataframe(
   dataframe = train_data,
   directory = "data/train_images",
@@ -185,7 +185,7 @@ test_flow <- flow_images_from_dataframe(
 
 This CNN has three layers for feature extraction starting with simple edges/textures, and then moving to more complex patterns. After this, the model uses flatten layer and then dense layer to combine the features. There is also a dropout layer to reduce overfitting and help the model better generalize. Finally, theres a sigmoid output layer to generate aprobability between 0 and 1, allowing the model to perform binary classification.
 
-```{r}
+```{r, eval=FALSE}
 model <- keras_model_sequential(list(
   # 32 convolution filters of size 3x3
   layer_conv_2d(filters = 32, kernel_size = 3, activation = "relu",
@@ -223,7 +223,7 @@ model
 
 The model is then trained for 15 epochs using the training generator. During each epoch, the model is also evaluated on the test generator, and both the training loss and accuracy and test loss and accuracy are reported.
 
-```{r}
+```{r, eval=FALSE}
 epochs <- 15
 
 history <- model$fit(
@@ -240,7 +240,7 @@ history_values <- py_to_r(history$history)
 
 We then plot the loss and accuracy for each epoch.
 
-```{r}
+```{r, eval=FALSE}
 plot(1:epochs, history_values$loss, type = "l", col = "blue", lwd = 2,
      xlab = "Epoch", ylab = "Loss", ylim = range(c(history_values$loss, history_values$val_loss)))
 lines(1:epochs, history_values$val_loss, col = "red", lwd = 2)
@@ -248,7 +248,7 @@ legend("topright", legend = c("Training Loss", "Validation Loss"),
        col = c("blue", "red"), lwd = 2)
 ```
 
-```{r}
+```{r, eval=FALSE}
 plot(1:epochs, history_values$accuracy, type = "l", col = "blue", lwd = 2,
      xlab = "Epoch", ylab = "Accuracy", ylim = range(c(history_values$accuracy, history_values$val_accuracy)))
 lines(1:epochs, history_values$val_accuracy, col = "red", lwd = 2)
