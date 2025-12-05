@@ -14,6 +14,8 @@ Janice Jiang
 
 ## Vignette Abstract
 
+This vignette introduces the basic knowledge of Convolutional Neural Networks (CNNs) and demonstrates their application for medical image classification using `R` and `Keras`. Using a brain tumor X-ray image dataset from [Kaggle](https://www.kaggle.com/datasets/preetviradiya/brian-tumor-dataset), the vignette explains the hierarchical feature learning architecture of CNNs, outlines the complete training pipeline from data preprocessing to model evaluation, and visualizes classification performance through confusion matrices and ROC curves. The main document [vignette-cnn.qmd](https://github.com/pstat197/vignette-cnn/blob/main/vignette-cnn.qmd) shows the full pipeline from processing data, splitting data, training models, and validate on test set to save the model. This practical guide demonstrates how CNNs can be effectively applied to medical imaging tasks with limited computational resources while achieving clinically relevant performance.
+
 ## Repository Contents
 
 ```plaintext
