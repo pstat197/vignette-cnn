@@ -16,6 +16,7 @@ Janice Jiang
 
 ## Repository Contents
 
+```plaintext
 vignette-cnn/
 |-- data
     |-- images   # raw image from Kaggle
@@ -23,7 +24,7 @@ vignette-cnn/
     |-- test_images   # testing images after data splitting
 |-- scripts
     |-- drafts
-	   |-- vignette-script.R
+        |-- vignette-script.R
 |-- results
     |-- cnn_brain_tumor_model.keras   # saved final model
 |-- img
@@ -32,6 +33,7 @@ vignette-cnn/
 |-- vignette-cnn.qmd   # report
 |-- vignette-cnn.html  # rendered html report
 |-- README.md
+```
 
 ## Reference
 
