@@ -32,15 +32,13 @@ Finally, after convolution, nonlinearity, and pooling, the final two layer of a 
 
 Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as state of the art. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).
 
-### Janice's Section
-
-**Why comparing to traditional NN, CNN work better in our case**
+### Why choosing CNN
 
 In a traditional fully connected neural network (NN), each neuron in one layer connects to every neuron in the next layer, leading to an explosion of parameters. For high-dimensional data like genomic data or medical images (this is the exact case for our project), this will be computationally infeasible and prone to overfitting. However, the **convolution** operation solves this through **parameter sharing**. Instead of learning separate weights for every pixel position, a convolutional layer uses a small set of learnable filters (or kernels) that are slid across the entire input image.
 
 Specifically, in our brain tumor detection context, this parameter sharing feature allows the CNN model to efficiently learn fundamental visual patterns from MRI slices without requiring an impossibly large dataset or computational power. It enforces the model to focus on what features are present rather than memorizing their exact spatial coordinates.
 
-**Hierarchical Feature Learning**
+### Hierarchical Feature Learning
 
 A CNN model does not process an image all at one time. Instead, it builds a hierarchical representation through successive layers, imitating the progressive complexity of the human visual system.
 
@@ -56,7 +54,7 @@ As we go deeper, the network combines the simple features from earlier layers in
 
 The final convolutional layers assemble the mid-level parts into complete, semantically meaningful objects. Here, the feature maps become highly abstract and task-specific. A neuron might activate strongly for the overall spatial configuration and texture that defines a specific tumor type or for the distinct morphology of a tumor versus healthy tissue.
 
-**Pooling: dimentionality reduction**
+### Pooling: dimentionality reduction
 
 Pooling layers (typically Max Pooling or Average Pooling) are strategically placed between convolutional layers and serve two primary purposes.
 
