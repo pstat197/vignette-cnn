@@ -6,35 +6,33 @@ editor: visual
 
 Authors: Lucas Childs
 
-## Conceptual Overview
+# Introduction
 
 ### Lucas' Section
 
-### Janice's Section
-
-**Why comparing to traditional NN, CNN work better in our case**
+## **Why using CNN against traditional NN**
 
 In a traditional fully connected neural network (NN), each neuron in one layer connects to every neuron in the next layer, leading to an explosion of parameters. For high-dimensional data like genomic data or medical images (this is the exact case for our project), this will be computationally infeasible and prone to overfitting. However, the **convolution** operation solves this through **parameter sharing**. Instead of learning separate weights for every pixel position, a convolutional layer uses a small set of learnable filters (or kernels) that are slid across the entire input image.
 
 Specifically, in our brain tumor detection context, this parameter sharing feature allows the CNN model to efficiently learn fundamental visual patterns from MRI slices without requiring an impossibly large dataset or computational power. It enforces the model to focus on what features are present rather than memorizing their exact spatial coordinates.
 
-**Hierarchical Feature Learning**
+## **Hierarchical Feature Learning**
 
 A CNN model does not process an image all at one time. Instead, it builds a hierarchical representation through successive layers, imitating the progressive complexity of the human visual system.
 
-**Early Convolutional Layers:**
+### **Early Convolutional Layers**
 
 The first layers are primed to learn the most basic building blocks of visual data. Their small filters act as feature detectors for simple patterns: oriented edges (horizontal, vertical, diagonal), color transitions, blobs, and basic textures. In an MRI scan, these correspond to the gradients between white matter, gray matter, and cerebrospinal fluid, or the initial texture of tissue.
 
-**Middle Convolutional Layers:**
+### **Middle Convolutional Layers**
 
 As we go deeper, the network combines the simple features from earlier layers into more complex structures. Neurons in these layers might respond to combinations of edges and textures that form shapes like curves, corners, or specific repetitive patterns. For brain tumor analysis, these layers could learn to identify common radiological "parts" such as a mass border, an enhancing rim, or patterns of edema surrounding a lesion.
 
-**Late Convolutional Layers:**
+### **Late Convolutional Layers**
 
 The final convolutional layers assemble the mid-level parts into complete, semantically meaningful objects. Here, the feature maps become highly abstract and task-specific. A neuron might activate strongly for the overall spatial configuration and texture that defines a specific tumor type or for the distinct morphology of a tumor versus healthy tissue.
 
-**Pooling: dimentionality reduction**
+## **Pooling: dimentionality reduction**
 
 Pooling layers (typically Max Pooling or Average Pooling) are strategically placed between convolutional layers and serve two primary purposes.
 
