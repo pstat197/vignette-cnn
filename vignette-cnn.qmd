@@ -101,6 +101,8 @@ ggsave("img/confusion_matrix.png", plot = p_cm, width = 6, height = 5)
 
 Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs. no tumor), and these are compared to the true labels from the test set. The caret::confusionMatrix() function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn't, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases.
 
+![](img/confusion_matrix.png)
+
 ### ROC Curve and AUC
 
 ```{r}
@@ -115,6 +117,8 @@ plot(roc_obj)
 ```
 
 The ROC curve provides a visual summary of the model’s ability to distinguish between tumor and non-tumor images across all possible classification thresholds. By plotting sensitivity (true positive rate) against 1 – specificity (false positive rate), the ROC curve illustrates how the model’s performance changes as the decision threshold shifts, highlighting the trade-off between capturing more true tumors and avoiding false alarms. The curve demonstrates strong separation between the two classes, and the resulting AUC value of 0.975 indicates excellent discriminatory performance, meaning the model can correctly rank tumor images above non-tumor images with very high probability.
+
+![](img/roc_curve.png)
 
 # Saving the Model
 
