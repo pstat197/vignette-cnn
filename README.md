@@ -25,7 +25,7 @@ vignette-cnn/
       |-- drafts
       |-- vignette-script.R
   |-- results
-      |-- cnn_brain_tumor_model.keras   # saved final model
+      |-- cnn_brain_tumor_model.keras   
   |-- img
       |-- confusion_matrix.png
       |-- roc_curve.png
