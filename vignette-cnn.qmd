@@ -60,6 +60,12 @@ Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with Res
 
 ## CNN for tumor classification code demo
 
+### Data Description
+
+The dataset used in this vignette contains 4,600 scanned brain images collected from patients either diagnosed with a brain tumor or confirmed to have no tumor. Each observation includes six columns: an ID, the image filename, the class label (tumor or normal), the file format, the image color mode, and the original image dimensions. The class distribution is relatively balanced, with approximately 55% tumor images and 45% normal images. Most images are stored in JPEG format (98%), with a small number in TIFF or other formats, and the majority use RGB color mode (97%), making the dataset consistent and suitable for CNN-based image classification.
+
+The image sizes vary substantially, ranging from common dimensions such as 512×512×3 and 225×225×3 to over 3,300 other unique shapes. This diversity in resolution requires preprocessing steps such as resizing and normalization before model training. Overall, the dataset provides a large and realistic set of brain scan images that supports effective training, evaluation, and generalization of deep learning models for tumor detection.
+
 Although the dataset is large and varied in format, a key limitation is that it appears to contain many duplicated or near-duplicated images. Several scans look almost identical, with only small changes in brightness, contrast, or quality, suggesting that some form of augmentation or repeated sampling occurred before the dataset was published. When such a dataset is split into training, validation, and test sets, it becomes likely that similar images end up in multiple subsets. This can make the model performance appear stronger than it truly is because it may encounter images during testing that closely resemble images it effectively saw during training.
 
 ### Environment / Data Setup
