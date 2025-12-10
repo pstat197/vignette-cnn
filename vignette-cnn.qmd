@@ -30,13 +30,17 @@ Finally, after convolution, nonlinearity, and pooling, the final two layer of a 
 
 Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as state of the art. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).
 
+<<<<<<< HEAD
 **Why comparing to traditional NN, CNN work better in our case**
+=======
+### Why choosing CNN
+>>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
 
 In a traditional fully connected neural network (NN), each neuron in one layer connects to every neuron in the next layer, leading to an explosion of parameters. For high-dimensional data like genomic data or medical images (this is the exact case for our project), this will be computationally infeasible and prone to overfitting. However, the **convolution** operation solves this through **parameter sharing**. Instead of learning separate weights for every pixel position, a convolutional layer uses a small set of learnable filters (or kernels) that are slid across the entire input image.
 
 Specifically, in our brain tumor detection context, this parameter sharing feature allows the CNN model to efficiently learn fundamental visual patterns from MRI slices without requiring an impossibly large dataset or computational power. It enforces the model to focus on what features are present rather than memorizing their exact spatial coordinates.
 
-**Hierarchical Feature Learning**
+### Hierarchical Feature Learning
 
 A CNN model does not process an image all at one time. Instead, it builds a hierarchical representation through successive layers, imitating the progressive complexity of the human visual system.
 
@@ -52,7 +56,7 @@ As we go deeper, the network combines the simple features from earlier layers in
 
 The final convolutional layers assemble the mid-level parts into complete, semantically meaningful objects. Here, the feature maps become highly abstract and task-specific. A neuron might activate strongly for the overall spatial configuration and texture that defines a specific tumor type or for the distinct morphology of a tumor versus healthy tissue.
 
-**Pooling: dimentionality reduction**
+### Pooling: dimentionality reduction
 
 Pooling layers (typically Max Pooling or Average Pooling) are strategically placed between convolutional layers and serve two primary purposes.
 
@@ -76,7 +80,7 @@ Although the dataset is large and varied in format, a key limitation is that it 
 
 We first start by loading the libraries necessary to run a CNN.
 
-```{r}
+```{r, eval=FALSE}
 library(keras)
 library(tensorflow)
 library(ggplot2)
@@ -92,7 +96,7 @@ library(tidyverse)
 
 We then upload the data. The dataset that we use contains labeled medical MRI brain scans used for tumor classification (binary variable). Each row represents a single image and includes ifnormation about the file including the name of the image, the class (tumor or normal), the format (png, jpeg, tif), the RGB color mode, and the shape/resolution of the image.
 
-```{r}
+```{r, eval=FALSE}
 metadata <- read_csv("data/metadata.csv.xls")
 head(metadata)
 colnames(metadata)
@@ -100,7 +104,7 @@ colnames(metadata)
 
 We split the dataset into an 80/20 train–test split.
 
-```{r}
+```{r, eval=FALSE}
 set.seed(11272025)
 train_index <- createDataPartition(metadata$class, p = 0.8, list = FALSE)
 train_data <- metadata[train_index, ]
@@ -111,7 +115,7 @@ nrow(test_data)
 
 After we have split the dataset, we create directories to store our training and testing brain scan images.
 
-```{r}
+```{r, eval=FALSE}
 dir_create("data/images", showWarnings = FALSE)
 dir_create("data/train_images")
 dir_create("data/test_images")
@@ -133,7 +137,7 @@ file_copy(
 
 Because neural networks require all input images to have the same dimensions, we resize all images to a target size of 224x224. We also set the batch size to 32. The batch size controls how many images the model processes at each training step before updating its weights. Processing the images in smaller batches helps improve training stability and efficiency.
 
-```{r}
+```{r, eval=FALSE}
 img_height <- 224
 img_width  <- 224
 batch_size <- 32
@@ -141,7 +145,7 @@ batch_size <- 32
 
 The image generator loads training images and applies data augmentation like rotating or shifting the image. Augmentation increases the diversity of the training set, helping the model avoid overfitting and improving its ability to generalize new images.
 
-```{r}
+```{r, eval=FALSE}
 train_gen <- image_data_generator(
   rescale = 1/255,
   rotation_range = 10,
@@ -153,13 +157,13 @@ train_gen <- image_data_generator(
 
 We also create a testing generator with no augmentation of images so that the model is tested on clean data.
 
-```{r}
+```{r, eval=FALSE}
 test_gen <- image_data_generator(rescale = 1/255)
 ```
 
 The flow_images_from_dataframe() reads in the images in batches from the training and test folders, apply the respective preprocessing (resizing and augmentation if needed), and record the corresponding true labels from the uploaded data.
 
-```{r}
+```{r, eval=FALSE}
 train_flow <- flow_images_from_dataframe(
   dataframe = train_data,
   directory = "data/train_images",
@@ -189,7 +193,7 @@ test_flow <- flow_images_from_dataframe(
 
 This CNN has three layers for feature extraction starting with simple edges/textures, and then moving to more complex patterns. After this, the model uses flatten layer and then dense layer to combine the features. There is also a dropout layer to reduce overfitting and help the model better generalize. Finally, theres a sigmoid output layer to generate aprobability between 0 and 1, allowing the model to perform binary classification.
 
-```{r}
+```{r, eval=FALSE}
 model <- keras_model_sequential(list(
   # 32 convolution filters of size 3x3
   layer_conv_2d(filters = 32, kernel_size = 3, activation = "relu",
@@ -227,7 +231,7 @@ model
 
 The model is then trained for 15 epochs using the training generator. During each epoch, the model is also evaluated on the test generator, and both the training loss and accuracy and test loss and accuracy are reported.
 
-```{r}
+```{r, eval=FALSE}
 epochs <- 15
 
 history <- model$fit(
@@ -244,7 +248,7 @@ history_values <- py_to_r(history$history)
 
 We then plot the loss and accuracy for each epoch.
 
-```{r}
+```{r, eval=FALSE}
 plot(1:epochs, history_values$loss, type = "l", col = "blue", lwd = 2,
      xlab = "Epoch", ylab = "Loss", ylim = range(c(history_values$loss, history_values$val_loss)))
 lines(1:epochs, history_values$val_loss, col = "red", lwd = 2)
@@ -252,7 +256,7 @@ legend("topright", legend = c("Training Loss", "Validation Loss"),
        col = c("blue", "red"), lwd = 2)
 ```
 
-```{r}
+```{r, eval=FALSE}
 plot(1:epochs, history_values$accuracy, type = "l", col = "blue", lwd = 2,
      xlab = "Epoch", ylab = "Accuracy", ylim = range(c(history_values$accuracy, history_values$val_accuracy)))
 lines(1:epochs, history_values$val_accuracy, col = "red", lwd = 2)
@@ -308,6 +312,11 @@ ggsave("img/confusion_matrix.png", plot = p_cm, width = 6, height = 5)
 ```
 
 Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs. no tumor), and these are compared to the true labels from the test set. The caret::confusionMatrix() function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn't, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases.
+<<<<<<< HEAD
+=======
+
+![](img/confusion_matrix.png)
+>>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
 
 ### ROC Curve and AUC
 
@@ -323,6 +332,11 @@ plot(roc_obj)
 ```
 
 The ROC curve provides a visual summary of the model’s ability to distinguish between tumor and non-tumor images across all possible classification thresholds. By plotting sensitivity (true positive rate) against 1 – specificity (false positive rate), the ROC curve illustrates how the model’s performance changes as the decision threshold shifts, highlighting the trade-off between capturing more true tumors and avoiding false alarms. The curve demonstrates strong separation between the two classes, and the resulting AUC value of 0.975 indicates excellent discriminatory performance, meaning the model can correctly rank tumor images above non-tumor images with very high probability.
+<<<<<<< HEAD
+=======
+
+![](img/roc_curve.png)
+>>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
 
 ### Saving the Model
 
@@ -334,9 +348,12 @@ cat("Model saved to results/cnn_brain_tumor_model.h5\n")
 ```
 
 Finally, we save the trained CNN model so it can be reused without needing to retrain it. We created a results/ folder and save the model in .keras format, which preserves both the architecture and the trained weights. Saving the model ensures that it can be loaded later for inference, further training, or deployment in a clinical or research workflow. This also makes the results reproducible and portable across systems.
+<<<<<<< HEAD
 
 ## Conclusion
 
 In this vignette, we demonstrated how Convolutional Neural Networks can be applied to medical image classification by training a CNN to distinguish between brain tumor and non–tumor X-ray scans. Through preprocessing, data augmentation, and a three-layer convolutional architecture, the model successfully learned meaningful visual patterns and achieved strong evaluation metrics. The model reached a test accuracy of 0.9075 with a relatively low loss of 0.2428, and additional performance assessments such as the confusion matrix and ROC curve indicated excellent class separation and reliable predictive behavior. These results highlight the effectiveness of CNNs for medical binary image classification.
 
 However, an important limitation of this dataset is the presence of substantial oversampling and duplicated or near-duplicated images. This oversampling likely contributed to the strong performance metrics we observed, including the high test accuracy and low loss value. While the results appear impressive, they may not fully reflect the model’s ability to generalize to genuinely new brain scan images. This limitation should be kept in mind when interpreting the model's performance. Despite this concern, the CNN still demonstrates promising capability and strong overall performance of evaluation metrics, and future work should involve cleaning the dataset or evaluating the model on a more carefully curated, non-duplicated test set to better assess its true generalization power.
+=======
+>>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
