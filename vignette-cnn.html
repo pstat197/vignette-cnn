@@ -98,7 +98,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Authors: Lucas Childs</p>
+<p>Authors: Lucas Childs, Kaeya, Sophie Lian, Janice</p>
 <p>The topic of our vignette is image classification in the medical setting. We’ll demonstrate using a Convolutional Neural Network (CNN) to classify brain tumor X-ray images into 2 classes: <code>Cancer</code> and <code>Not Cancer</code>. This binary image classification is a classic use-case of how CNNs can be applicable in the medical setting.</p>
 <section id="conceptual-overview" class="level2">
 <h2 class="anchored" data-anchor-id="conceptual-overview">Conceptual Overview</h2>
@@ -135,7 +135,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="cnn-for-tumor-classification-code-demo" class="level2">
 <h2 class="anchored" data-anchor-id="cnn-for-tumor-classification-code-demo">CNN for tumor classification code demo</h2>
+<section id="data-description" class="level3">
+<h3 class="anchored" data-anchor-id="data-description">Data Description</h3>
+<p>The dataset used in this vignette contains 4,600 scanned brain images collected from patients either diagnosed with a brain tumor or confirmed to have no tumor. Each observation includes six columns: an ID, the image filename, the class label (tumor or normal), the file format, the image color mode, and the original image dimensions. The class distribution is relatively balanced, with approximately 55% tumor images and 45% normal images. Most images are stored in JPEG format (98%), with a small number in TIFF or other formats, and the majority use RGB color mode (97%), making the dataset consistent and suitable for CNN-based image classification.</p>
+<p>The image sizes vary substantially, ranging from common dimensions such as 512×512×3 and 225×225×3 to over 3,300 other unique shapes. This diversity in resolution requires preprocessing steps such as resizing and normalization before model training. Overall, the dataset provides a large and realistic set of brain scan images that supports effective training, evaluation, and generalization of deep learning models for tumor detection.</p>
 <p>Although the dataset is large and varied in format, a key limitation is that it appears to contain many duplicated or near-duplicated images. Several scans look almost identical, with only small changes in brightness, contrast, or quality, suggesting that some form of augmentation or repeated sampling occurred before the dataset was published. When such a dataset is split into training, validation, and test sets, it becomes likely that similar images end up in multiple subsets. This can make the model performance appear stronger than it truly is because it may encounter images during testing that closely resemble images it effectively saw during training.</p>
+</section>
 <section id="environment-data-setup" class="level3">
 <h3 class="anchored" data-anchor-id="environment-data-setup">Environment / Data Setup</h3>
 <p>We first start by loading the libraries necessary to run a CNN.</p>
@@ -297,6 +302,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"Training Loss"</span>, <span class="st">"Validation Loss"</span>),</span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p><img src="img/loss_plot.png" class="img-fluid"></p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="dv">1</span><span class="sc">:</span>epochs, history_values<span class="sc">$</span>accuracy, <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lwd =</span> <span class="dv">2</span>,</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Epoch"</span>, <span class="at">ylab =</span> <span class="st">"Accuracy"</span>, <span class="at">ylim =</span> <span class="fu">range</span>(<span class="fu">c</span>(history_values<span class="sc">$</span>accuracy, history_values<span class="sc">$</span>val_accuracy)))</span>
@@ -304,6 +310,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"Training Accuracy"</span>, <span class="st">"Validation Accuracy"</span>),</span>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p><img src="img/accuracy_plot.png" class="img-fluid"></p>
 </section>
 <section id="evaluating-the-model" class="level3">
 <h3 class="anchored" data-anchor-id="evaluating-the-model">Evaluating the Model</h3>
