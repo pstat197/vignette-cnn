@@ -161,18 +161,22 @@ history <- model$fit(
 history_values <- py_to_r(history$history)
 
 # Plot loss
+png("img/loss_plot.png", width = 900, height = 700)
 plot(1:epochs, history_values$loss, type = "l", col = "blue", lwd = 2,
      xlab = "Epoch", ylab = "Loss", ylim = range(c(history_values$loss, history_values$val_loss)))
 lines(1:epochs, history_values$val_loss, col = "red", lwd = 2)
 legend("topright", legend = c("Training Loss", "Validation Loss"),
        col = c("blue", "red"), lwd = 2)
+dev.off()
 
 # Plot accuracy
+png("img/accuracy_plot.png", width = 900, height = 700)
 plot(1:epochs, history_values$accuracy, type = "l", col = "blue", lwd = 2,
      xlab = "Epoch", ylab = "Accuracy", ylim = range(c(history_values$accuracy, history_values$val_accuracy)))
 lines(1:epochs, history_values$val_accuracy, col = "red", lwd = 2)
 legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"),
        col = c("blue", "red"), lwd = 2)
+dev.off()
 
 
 
@@ -208,6 +212,9 @@ true_labels <- test_flow$classes  # returns the true class indices
 # Use caret to show detailed confusion metrics (requires factor inputs)
 cm <- caret::confusionMatrix(factor(pred_labels), factor(true_labels), 
                              positive = "1")
+
+# Extract the confusion matrix table
+cm_table <- cm$table
 
 # Plot confusion matrix heatmap using ggplot
 cm_df <- as.data.frame(cm_table)

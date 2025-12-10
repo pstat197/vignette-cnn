@@ -30,11 +30,11 @@ Finally, after convolution, nonlinearity, and pooling, the final two layer of a 
 
 Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as state of the art. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).
 
-<<<<<<< HEAD
+
 **Why comparing to traditional NN, CNN work better in our case**
-=======
+
 ### Why choosing CNN
->>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
+
 
 In a traditional fully connected neural network (NN), each neuron in one layer connects to every neuron in the next layer, leading to an explosion of parameters. For high-dimensional data like genomic data or medical images (this is the exact case for our project), this will be computationally infeasible and prone to overfitting. However, the **convolution** operation solves this through **parameter sharing**. Instead of learning separate weights for every pixel position, a convolutional layer uses a small set of learnable filters (or kernels) that are slid across the entire input image.
 
@@ -312,11 +312,11 @@ ggsave("img/confusion_matrix.png", plot = p_cm, width = 6, height = 5)
 ```
 
 Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs. no tumor), and these are compared to the true labels from the test set. The caret::confusionMatrix() function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn't, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases.
-<<<<<<< HEAD
-=======
+
+
 
 ![](img/confusion_matrix.png)
->>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
+
 
 ### ROC Curve and AUC
 
@@ -332,11 +332,11 @@ plot(roc_obj)
 ```
 
 The ROC curve provides a visual summary of the model’s ability to distinguish between tumor and non-tumor images across all possible classification thresholds. By plotting sensitivity (true positive rate) against 1 – specificity (false positive rate), the ROC curve illustrates how the model’s performance changes as the decision threshold shifts, highlighting the trade-off between capturing more true tumors and avoiding false alarms. The curve demonstrates strong separation between the two classes, and the resulting AUC value of 0.975 indicates excellent discriminatory performance, meaning the model can correctly rank tumor images above non-tumor images with very high probability.
-<<<<<<< HEAD
-=======
+
+
 
 ![](img/roc_curve.png)
->>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
+
 
 ### Saving the Model
 
@@ -348,12 +348,12 @@ cat("Model saved to results/cnn_brain_tumor_model.h5\n")
 ```
 
 Finally, we save the trained CNN model so it can be reused without needing to retrain it. We created a results/ folder and save the model in .keras format, which preserves both the architecture and the trained weights. Saving the model ensures that it can be loaded later for inference, further training, or deployment in a clinical or research workflow. This also makes the results reproducible and portable across systems.
-<<<<<<< HEAD
+
 
 ## Conclusion
 
 In this vignette, we demonstrated how Convolutional Neural Networks can be applied to medical image classification by training a CNN to distinguish between brain tumor and non–tumor X-ray scans. Through preprocessing, data augmentation, and a three-layer convolutional architecture, the model successfully learned meaningful visual patterns and achieved strong evaluation metrics. The model reached a test accuracy of 0.9075 with a relatively low loss of 0.2428, and additional performance assessments such as the confusion matrix and ROC curve indicated excellent class separation and reliable predictive behavior. These results highlight the effectiveness of CNNs for medical binary image classification.
 
 However, an important limitation of this dataset is the presence of substantial oversampling and duplicated or near-duplicated images. This oversampling likely contributed to the strong performance metrics we observed, including the high test accuracy and low loss value. While the results appear impressive, they may not fully reflect the model’s ability to generalize to genuinely new brain scan images. This limitation should be kept in mind when interpreting the model's performance. Despite this concern, the CNN still demonstrates promising capability and strong overall performance of evaluation metrics, and future work should involve cleaning the dataset or evaluating the model on a more carefully curated, non-duplicated test set to better assess its true generalization power.
-=======
->>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
+
+
