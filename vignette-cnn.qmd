@@ -4,18 +4,15 @@ format: html
 editor: visual
 ---
 
-Authors: Lucas Childs
+Authors: Lucas Childs, Kaeya, Sophie Lian, Janice
 
 The topic of our vignette is image classification in the medical setting. We'll demonstrate using a Convolutional Neural Network (CNN) to classify brain tumor X-ray images into 2 classes: `Cancer` and `Not Cancer`. This binary image classification is a classic use-case of how CNNs can be applicable in the medical setting.
 
 ## Conceptual Overview
 
-
 Before CNNs were developed, the standard way to use a Neural Network to train an image classifier was to flatten images into a list of pixels and pass it through a feed-forward neural network in order to predict the class of the image. The spatial information of the images is lost with this technique and it leads to an explosion of parameters since each neuron in one layer is connected to every neuron in the next layer. Thus, this method is not optimal for high dimensional data, especially in the medical setting where genomic data and images are commonly analyzed.
 
-
 CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They're able to process images using **convolution**, which uses a filter to scan one segment of the image grid at a time, engaging in **parameter sharing**. The filter is a set of weights (e.g. of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features. So, instead of learning separate weights for every pixel position, a convolutional layer uses these small sets of learnable filters, essentially sharing these parameters with the entire image space and decreasing the total number of parameters.
-
 
 ![](img/Convolution.png)
 
@@ -41,7 +38,7 @@ The final convolutional layers assemble the mid-level parts into complete, more 
 
 ### Nonlinearity and Pooling
 
-After each convolutional layer of the network, nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer. 
+After each convolutional layer of the network, nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer.
 
 Pooling layers, placed between convolutional layers, serve two primary purposes.
 
@@ -245,6 +242,8 @@ legend("topright", legend = c("Training Loss", "Validation Loss"),
        col = c("blue", "red"), lwd = 2)
 ```
 
+![](img/loss_plot.png)
+
 ```{r, eval=FALSE}
 plot(1:epochs, history_values$accuracy, type = "l", col = "blue", lwd = 2,
      xlab = "Epoch", ylab = "Accuracy", ylim = range(c(history_values$accuracy, history_values$val_accuracy)))
@@ -252,6 +251,8 @@ lines(1:epochs, history_values$val_accuracy, col = "red", lwd = 2)
 legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"),
        col = c("blue", "red"), lwd = 2)
 ```
+
+![](img/accuracy_plot.png)
 
 ### Evaluating the Model
 
@@ -302,7 +303,6 @@ ggsave("img/confusion_matrix.png", plot = p_cm, width = 6, height = 5)
 
 Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs. no tumor), and these are compared to the true labels from the test set. The caret::confusionMatrix() function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn't, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases.
 
-
 ![](img/confusion_matrix.png)
 
 ### ROC Curve and AUC
@@ -338,5 +338,3 @@ Finally, we save the trained CNN model so it can be reused without needing to re
 In this vignette, we demonstrated how Convolutional Neural Networks can be applied to medical image classification by training a CNN to distinguish between brain tumor and non–tumor X-ray scans. Through preprocessing, data augmentation, and a three-layer convolutional architecture, the model successfully learned meaningful visual patterns and achieved strong evaluation metrics. The model reached a test accuracy of 0.9075 with a relatively low loss of 0.2428, and additional performance assessments such as the confusion matrix and ROC curve indicated excellent class separation and reliable predictive behavior. These results highlight the effectiveness of CNNs for medical binary image classification.
 
 However, an important limitation of this dataset is the presence of substantial oversampling and duplicated or near-duplicated images. Some images were augmented before the dataset was published, so when we split data in training vs testing sets, we could not make sure augmented images were only placed into the training set, so some of these oversampled data ended up in the test set making the test error appear lower than it actually should be. Ideally, all preprocessing or image augmentation is done on training data so that the model can learn to be more robust, and then evaluated on unaltered test images. This oversampling likely contributed to the strong performance metrics we observed, including the high test accuracy and low loss value. While the results appear impressive, they may not fully reflect the model’s ability to generalize to genuinely new brain scan images. This limitation should be kept in mind when interpreting the model's performance, but the CNN still demonstrates promising capability and is a good example of a basic CNN used for image classification on medical data. Future work should involve cleaning the dataset or evaluating the model on a more carefully curated, non-duplicated test set to better assess its true generalization power.
-
-
