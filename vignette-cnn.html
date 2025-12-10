@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>vignette-cnn.qmd</title>
+<title>Vignette - CNN to Classify Brain Tumor X-Ray Images</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -81,7 +81,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">vignette-cnn.qmd</h1>
+<h1 class="title">Vignette - CNN to Classify Brain Tumor X-Ray Images</h1>
 </div>
 
 
@@ -98,12 +98,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Authors: Lucas Childs, Kaeya, Sophie, Janice</p>
+<p>Authors: Lucas Childs, Kaeya, Sophie Lian, Janice</p>
 <p>The topic of our vignette is image classification in the medical setting. We’ll demonstrate using a Convolutional Neural Network (CNN) to classify brain tumor X-ray images into 2 classes: <code>Cancer</code> and <code>Not Cancer</code>. This binary image classification is a classic use-case of how CNNs can be applicable in the medical setting.</p>
 <section id="conceptual-overview" class="level2">
 <h2 class="anchored" data-anchor-id="conceptual-overview">Conceptual Overview</h2>
-<section id="lucas-section" class="level3">
-<h3 class="anchored" data-anchor-id="lucas-section">Lucas’ Section</h3>
 <p>Before CNNs were developed, the standard way to use a Neural Network to train an image classifier was to flatten images into a list of pixels and pass it through a feed-forward neural network in order to predict the class of the image. However, the spatial information of the images are lost with this technique.</p>
 <p>CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They’re able to process images using convolution, which uses a filter to scan one segment of the image grid at a time. The filter is a set of weights (e.g.&nbsp;of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features.</p>
 <p><img src="img/Convolution.png" class="img-fluid"></p>
@@ -114,13 +112,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Finally, after convolution, nonlinearity, and pooling, the final two layer of a CNN include flattening and the fully connected (or Dense) layer. Flattening takes the resulting feature maps and flattens them to a 1-dimensional vector so that they can be used by the final layer to make class predictions. The fully connected layer is fed this 1-dimensional vector and activated with the sigmoid (our use-case) or softmax functions depending on binary or multiclass classification.</p>
 <p><img src="img/CNN.png" class="img-fluid"></p>
 <p>Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as state of the art. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).</p>
-</section>
-<section id="janices-section" class="level3">
-<h3 class="anchored" data-anchor-id="janices-section">Janice’s Section</h3>
-<p><strong>Why comparing to traditional NN, CNN work better in our case</strong></p>
+<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD <strong>Why comparing to traditional NN, CNN work better in our case</strong> ======= ### Why choosing CNN &gt;&gt;&gt;&gt;&gt;&gt;&gt; 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2</p>
 <p>In a traditional fully connected neural network (NN), each neuron in one layer connects to every neuron in the next layer, leading to an explosion of parameters. For high-dimensional data like genomic data or medical images (this is the exact case for our project), this will be computationally infeasible and prone to overfitting. However, the <strong>convolution</strong> operation solves this through <strong>parameter sharing</strong>. Instead of learning separate weights for every pixel position, a convolutional layer uses a small set of learnable filters (or kernels) that are slid across the entire input image.</p>
 <p>Specifically, in our brain tumor detection context, this parameter sharing feature allows the CNN model to efficiently learn fundamental visual patterns from MRI slices without requiring an impossibly large dataset or computational power. It enforces the model to focus on what features are present rather than memorizing their exact spatial coordinates.</p>
-<p><strong>Hierarchical Feature Learning</strong></p>
+<section id="hierarchical-feature-learning" class="level3">
+<h3 class="anchored" data-anchor-id="hierarchical-feature-learning">Hierarchical Feature Learning</h3>
 <p>A CNN model does not process an image all at one time. Instead, it builds a hierarchical representation through successive layers, imitating the progressive complexity of the human visual system.</p>
 <p><strong>Early Convolutional Layers:</strong></p>
 <p>The first layers are primed to learn the most basic building blocks of visual data. Their small filters act as feature detectors for simple patterns: oriented edges (horizontal, vertical, diagonal), color transitions, blobs, and basic textures. In an MRI scan, these correspond to the gradients between white matter, gray matter, and cerebrospinal fluid, or the initial texture of tissue.</p>
@@ -128,7 +124,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>As we go deeper, the network combines the simple features from earlier layers into more complex structures. Neurons in these layers might respond to combinations of edges and textures that form shapes like curves, corners, or specific repetitive patterns. For brain tumor analysis, these layers could learn to identify common radiological “parts” such as a mass border, an enhancing rim, or patterns of edema surrounding a lesion.</p>
 <p><strong>Late Convolutional Layers:</strong></p>
 <p>The final convolutional layers assemble the mid-level parts into complete, semantically meaningful objects. Here, the feature maps become highly abstract and task-specific. A neuron might activate strongly for the overall spatial configuration and texture that defines a specific tumor type or for the distinct morphology of a tumor versus healthy tissue.</p>
-<p><strong>Pooling: dimentionality reduction</strong></p>
+</section>
+<section id="pooling-dimentionality-reduction" class="level3">
+<h3 class="anchored" data-anchor-id="pooling-dimentionality-reduction">Pooling: dimentionality reduction</h3>
 <p>Pooling layers (typically Max Pooling or Average Pooling) are strategically placed between convolutional layers and serve two primary purposes.</p>
 <p>First, pooling reduces the spatial dimensions of the feature maps while preserving the most critical information. For example, a 2x2 Max Pooling operation takes the maximum value from a 2x2 grid, reducing the feature map size by 75%. This progressively decreases the number of parameters and computations in the network, controlling computational cost and mitigating overfitting.</p>
 <p>Second, by summarizing a local region, pooling makes the network less sensitive to the exact position of a feature. A small shift or distortion in the location of a detected edge pattern will likely still fall within the same pooling region, and thus the pooled output remains unchanged. This helps the network generalize better—a tumor’s precise pixel location is less important than its relative structure and context.</p>
@@ -137,6 +135,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="code-demo" class="level2">
 <h2 class="anchored" data-anchor-id="code-demo">Code Demo</h2>
+<section id="data-description" class="level3">
+<h3 class="anchored" data-anchor-id="data-description">Data Description</h3>
+<p>The dataset used in this vignette contains 4,600 scanned brain images collected from patients either diagnosed with a brain tumor or confirmed to have no tumor. Each observation includes six columns: an ID, the image filename, the class label (tumor or normal), the file format, the image color mode, and the original image dimensions. The class distribution is relatively balanced, with approximately 55% tumor images and 45% normal images. Most images are stored in JPEG format (98%), with a small number in TIFF or other formats, and the majority use RGB color mode (97%), making the dataset consistent and suitable for CNN-based image classification.</p>
+<p>The image sizes vary substantially, ranging from common dimensions such as 512×512×3 and 225×225×3 to over 3,300 other unique shapes. This diversity in resolution requires preprocessing steps such as resizing and normalization before model training. Overall, the dataset provides a large and realistic set of brain scan images that supports effective training, evaluation, and generalization of deep learning models for tumor detection.</p>
+<p>Although the dataset is large and varied in format, a key limitation is that it appears to contain many duplicated or near-duplicated images. Several scans look almost identical, with only small changes in brightness, contrast, or quality, suggesting that some form of augmentation or repeated sampling occurred before the dataset was published. When such a dataset is split into training, validation, and test sets, it becomes likely that similar images end up in multiple subsets. This can make the model performance appear stronger than it truly is because it may encounter images during testing that closely resemble images it effectively saw during training.</p>
+</section>
 <section id="environment-data-setup" class="level3">
 <h3 class="anchored" data-anchor-id="environment-data-setup">Environment / Data Setup</h3>
 <p>We first start by loading the libraries necessary to run a CNN.</p>
@@ -306,9 +310,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="sophies-section" class="level3">
-<h3 class="anchored" data-anchor-id="sophies-section">Sophie’s Section</h3>
-</section>
 <section id="evaluating-the-model" class="level3">
 <h3 class="anchored" data-anchor-id="evaluating-the-model">Evaluating the Model</h3>
 <div class="cell">
@@ -322,7 +323,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Test loss:"</span>, test_loss, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
 <span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Test accuracy:"</span>, test_accuracy, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p><em>This section evaluates the trained CNN on the test dataset to measure how well it generalizes to unseen images. The model$evaluate() function computes two key metrics: test loss, which measures overall prediction error, and test accuracy, which measures the proportion of correctly classified images. By converting the Python output into an R list, we extract and print these values. A high accuracy value of 0.9075081 and generally low loss value of 0.2428377 indicate that the model has learned meaningful patterns from the training data and performs reliably on new samples from the test data.</em></p>
+<p>This section evaluates the trained CNN on the test dataset to measure how well it generalizes to unseen images. The model$evaluate() function computes two key metrics: test loss, which measures overall prediction error, and test accuracy, which measures the proportion of correctly classified images. By converting the Python output into an R list, we extract and print these values. A high accuracy value of 0.9075081 and generally low loss value of 0.2428377 indicate that the model has learned meaningful patterns from the training data and performs reliably on new samples from the test data.</p>
 </section>
 <section id="confusion-matrix" class="level3">
 <h3 class="anchored" data-anchor-id="confusion-matrix">Confusion Matrix</h3>
@@ -354,7 +355,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="st">"img/confusion_matrix.png"</span>, <span class="at">plot =</span> p_cm, <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p><em>Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs.&nbsp;no tumor), and these are compared to the true labels from the test set. The caret::confusionMatrix() function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn’t, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases.</em></p>
+<p>Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs.&nbsp;no tumor), and these are compared to the true labels from the test set. The caret::confusionMatrix() function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn’t, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases. &lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD =======</p>
+<p><img src="img/confusion_matrix.png" class="img-fluid"> &gt;&gt;&gt;&gt;&gt;&gt;&gt; 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2</p>
 </section>
 <section id="roc-curve-and-auc" class="level3">
 <h3 class="anchored" data-anchor-id="roc-curve-and-auc">ROC Curve and AUC</h3>
@@ -368,18 +370,41 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="fu">png</span>(<span class="st">"img/roc_curve.png"</span>, <span class="at">width =</span> <span class="dv">900</span>, <span class="at">height =</span> <span class="dv">700</span>)</span>
 <span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(roc_obj)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p><em>The ROC curve provides a visual summary of the model’s ability to distinguish between tumor and non-tumor images across all possible classification thresholds. By plotting sensitivity (true positive rate) against 1 – specificity (false positive rate), the ROC curve illustrates how the model’s performance changes as the decision threshold shifts, highlighting the trade-off between capturing more true tumors and avoiding false alarms. The curve demonstrates strong separation between the two classes, and the resulting AUC value of 0.975 indicates excellent discriminatory performance, meaning the model can correctly rank tumor images above non-tumor images with very high probability.</em></p>
+<p>The ROC curve provides a visual summary of the model’s ability to distinguish between tumor and non-tumor images across all possible classification thresholds. By plotting sensitivity (true positive rate) against 1 – specificity (false positive rate), the ROC curve illustrates how the model’s performance changes as the decision threshold shifts, highlighting the trade-off between capturing more true tumors and avoiding false alarms. The curve demonstrates strong separation between the two classes, and the resulting AUC value of 0.975 indicates excellent discriminatory performance, meaning the model can correctly rank tumor images above non-tumor images with very high probability. &lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD =======</p>
+<p><img src="img/roc_curve.png" class="img-fluid"> &gt;&gt;&gt;&gt;&gt;&gt;&gt; 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2</p>
 </section>
-</section>
-<section id="saving-the-model" class="level1">
-<h1>Saving the Model</h1>
+<section id="saving-the-model" class="level3">
+<h3 class="anchored" data-anchor-id="saving-the-model">Saving the Model</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dir_create</span>(<span class="st">"results"</span>)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>model<span class="sc">$</span><span class="fu">save</span>(<span class="st">"results/cnn_brain_tumor_model.keras"</span>)</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Model saved to results/cnn_brain_tumor_model.h5</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p><em>Finally, we save the trained CNN model so it can be reused without needing to retrain it. We created a results/ folder and save the model in .keras format, which preserves both the architecture and the trained weights. Saving the model ensures that it can be loaded later for inference, further training, or deployment in a clinical or research workflow. This also makes the results reproducible and portable across systems.</em></p>
+<p>Finally, we save the trained CNN model so it can be reused without needing to retrain it. We created a results/ folder and save the model in .keras format, which preserves both the architecture and the trained weights. Saving the model ensures that it can be loaded later for inference, further training, or deployment in a clinical or research workflow. This also makes the results reproducible and portable across systems. &lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
+</section>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>In this vignette, we demonstrated how Convolutional Neural Networks can be applied to medical image classification by training a CNN to distinguish between brain tumor and non–tumor X-ray scans. Through preprocessing, data augmentation, and a three-layer convolutional architecture, the model successfully learned meaningful visual patterns and achieved strong evaluation metrics. The model reached a test accuracy of 0.9075 with a relatively low loss of 0.2428, and additional performance assessments such as the confusion matrix and ROC curve indicated excellent class separation and reliable predictive behavior. These results highlight the effectiveness of CNNs for medical binary image classification.</p>
+</section>
+<section id="however-an-important-limitation-of-this-dataset-is-the-presence-of-substantial-oversampling-and-duplicated-or-near-duplicated-images.-this-oversampling-likely-contributed-to-the-strong-performance-metrics-we-observed-including-the-high-test-accuracy-and-low-loss-value.-while-the-results-appear-impressive-they-may-not-fully-reflect-the-models-ability-to-generalize-to-genuinely-new-brain-scan-images.-this-limitation-should-be-kept-in-mind-when-interpreting-the-models-performance.-despite-this-concern-the-cnn-still-demonstrates-promising-capability-and-strong-overall-performance-of-evaluation-metrics-and-future-work-should-involve-cleaning-the-dataset-or-evaluating-the-model-on-a-more-carefully-curated-non-duplicated-test-set-to-better-assess-its-true-generalization-power." class="level1">
+<h1>However, an important limitation of this dataset is the presence of substantial oversampling and duplicated or near-duplicated images. This oversampling likely contributed to the strong performance metrics we observed, including the high test accuracy and low loss value. While the results appear impressive, they may not fully reflect the model’s ability to generalize to genuinely new brain scan images. This limitation should be kept in mind when interpreting the model’s performance. Despite this concern, the CNN still demonstrates promising capability and strong overall performance of evaluation metrics, and future work should involve cleaning the dataset or evaluating the model on a more carefully curated, non-duplicated test set to better assess its true generalization power.</h1>
+<blockquote class="blockquote">
+<blockquote class="blockquote">
+<blockquote class="blockquote">
+<blockquote class="blockquote">
+<blockquote class="blockquote">
+<blockquote class="blockquote">
+<blockquote class="blockquote">
+<p>02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
 </section>
 
 </main>
