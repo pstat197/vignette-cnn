@@ -4,28 +4,45 @@ format: html
 editor: visual
 ---
 
-Authors: Lucas Childs
+Authors: Lucas Childs, Kaeya, Sophie Lian, Janice
 
 The topic of our vignette is image classification in the medical setting. We'll demonstrate using a Convolutional Neural Network (CNN) to classify brain tumor X-ray images into 2 classes: `Cancer` and `Not Cancer`. This binary image classification is a classic use-case of how CNNs can be applicable in the medical setting.
 
 ## Conceptual Overview
 
+Before CNNs were developed, the standard way to use a Neural Network to train an image classifier was to flatten images into a list of pixels and pass it through a feed-forward neural network in order to predict the class of the image. However, the spatial information of the images are lost with this technique.
 
-Before CNNs were developed, the standard way to use a Neural Network to train an image classifier was to flatten images into a list of pixels and pass it through a feed-forward neural network in order to predict the class of the image. The spatial information of the images is lost with this technique and it leads to an explosion of parameters since each neuron in one layer is connected to every neuron in the next layer. Thus, this method is not optimal for high dimensional data, especially in the medical setting where genomic data and images are commonly analyzed.
-
-
-CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They're able to process images using **convolution**, which uses a filter to scan one segment of the image grid at a time, engaging in **parameter sharing**. The filter is a set of weights (e.g. of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features. So, instead of learning separate weights for every pixel position, a convolutional layer uses these small sets of learnable filters, essentially sharing these parameters with the entire image space and decreasing the total number of parameters.
-
+CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They're able to process images using convolution, which uses a filter to scan one segment of the image grid at a time. The filter is a set of weights (e.g. of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features.
 
 ![](img/Convolution.png)
 
-Specifically, in our brain tumor detection context, this parameter sharing feature allows the CNN model to efficiently learn fundamental visual patterns from X-ray images without requiring an impossibly large dataset or computational power. It forces the model to focus on what features are present rather than memorizing their exact spatial coordinates.
+For example, one convolutional layer in a CNN can have multiple filters, each looking to extract different aspects of the brain x-ray image (e.g. horizontal edges, vertical edges, color contrasts). The key idea is that parameters are shared: the filter with its weights is slid across the entire image, not just part of it, so these weights are essentially shared with the whole input image instead of assigning a parameter to learn each pixel of the image. Thus, convolution helps to generalize features across the whole image field making CNNs robust to variations in the location of objects and to reduce the number of trainable parameters of the Neural Network (reduction to the number of filter weights instead of learning separate weights for each location).
 
-For example, one convolutional layer in a CNN can have multiple filters, each looking to extract different aspects of the brain x-ray image (e.g. horizontal edges, vertical edges, color contrasts). Once again, the main idea is that parameters are shared: so the filter is slid across the entire image, not just part of it. This enables convolution to generalize features across the whole image field making CNNs robust to variations in the location of objects and to reduce the number of trainable parameters of the Neural Network (reduction to the number of filter weights instead of learning separate weights for each location).
+After each convolution operation (convolutional layer of the network), nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer.
+
+Additionally, CNNs do pooling as downsampling to reduce the size of the data, where feature maps are essentially subsampled. Each subsample is turned into a single pixel value with max pooling or average pooling, taking the maximum pixel value or average pixel value.
+
+![](img/Pooling.png)
+
+Finally, after convolution, nonlinearity, and pooling, the final two layer of a CNN include flattening and the fully connected (or Dense) layer. Flattening takes the resulting feature maps and flattens them to a 1-dimensional vector so that they can be used by the final layer to make class predictions. The fully connected layer is fed this 1-dimensional vector and activated with the sigmoid (our use-case) or softmax functions depending on binary or multiclass classification.
+
+![](img/CNN.png)
+
+Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as state of the art. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).
+
+<<<<<<< HEAD
+**Why comparing to traditional NN, CNN work better in our case**
+=======
+### Why choosing CNN
+>>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
+
+In a traditional fully connected neural network (NN), each neuron in one layer connects to every neuron in the next layer, leading to an explosion of parameters. For high-dimensional data like genomic data or medical images (this is the exact case for our project), this will be computationally infeasible and prone to overfitting. However, the **convolution** operation solves this through **parameter sharing**. Instead of learning separate weights for every pixel position, a convolutional layer uses a small set of learnable filters (or kernels) that are slid across the entire input image.
+
+Specifically, in our brain tumor detection context, this parameter sharing feature allows the CNN model to efficiently learn fundamental visual patterns from MRI slices without requiring an impossibly large dataset or computational power. It enforces the model to focus on what features are present rather than memorizing their exact spatial coordinates.
 
 ### Hierarchical Feature Learning
 
-CNNs build a hierarchical representation of images throughout its layers. For example,
+A CNN model does not process an image all at one time. Instead, it builds a hierarchical representation through successive layers, imitating the progressive complexity of the human visual system.
 
 **Early Convolutional Layers:**
 
@@ -33,35 +50,29 @@ The first layers are primed to learn the most basic building blocks of visual da
 
 **Middle Convolutional Layers:**
 
-As we go deeper, the network combines the simple features from earlier layers into more complex structures. Neurons in these layers might respond to combinations of edges and textures that form shapes like curves, corners, or specific repetitive patterns. For brain tumor analysis, these layers could learn to identify common radiological "parts" such as a mass border/rim, or patterns surrounding a lesion.
+As we go deeper, the network combines the simple features from earlier layers into more complex structures. Neurons in these layers might respond to combinations of edges and textures that form shapes like curves, corners, or specific repetitive patterns. For brain tumor analysis, these layers could learn to identify common radiological "parts" such as a mass border, an enhancing rim, or patterns of edema surrounding a lesion.
 
 **Late Convolutional Layers:**
 
-The final convolutional layers assemble the mid-level parts into complete, more meaningful objects. Here, the feature maps become task-specific, capturing the overall spatial configuration and texture of a specific tumor type or healthy tissue.
+The final convolutional layers assemble the mid-level parts into complete, semantically meaningful objects. Here, the feature maps become highly abstract and task-specific. A neuron might activate strongly for the overall spatial configuration and texture that defines a specific tumor type or for the distinct morphology of a tumor versus healthy tissue.
 
-### Nonlinearity and Pooling
+### Pooling: dimentionality reduction
 
-After each convolutional layer of the network, nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer. 
+Pooling layers (typically Max Pooling or Average Pooling) are strategically placed between convolutional layers and serve two primary purposes.
 
-Pooling layers, placed between convolutional layers, serve two primary purposes.
+First, pooling reduces the spatial dimensions of the feature maps while preserving the most critical information. For example, a 2x2 Max Pooling operation takes the maximum value from a 2x2 grid, reducing the feature map size by 75%. This progressively decreases the number of parameters and computations in the network, controlling computational cost and mitigating overfitting.
 
-Pooling is used as downsampling to reduce the size of the data, where feature maps are essentially subsampled. Each subsample is turned into a single pixel value with max pooling or average pooling (taking the maximum pixel value or average pixel value of the subsamples). This progressively decreases the number of parameters in the network, controlling computational cost and mitigating overfitting.
+Second, by summarizing a local region, pooling makes the network less sensitive to the exact position of a feature. A small shift or distortion in the location of a detected edge pattern will likely still fall within the same pooling region, and thus the pooled output remains unchanged. This helps the network generalize better—a tumor's precise pixel location is less important than its relative structure and context.
 
-![](img/Pooling.png)
+In our project, pooling is crucial. It ensures that the model focuses on the **presence of key diagnostic features** (like a tumor's enhancing region) rather than their **exact, sub-pixel coordinates**, which can vary due to differences in patient positioning or image acquisition.
 
-Second, by summarizing a local region, pooling makes the network less sensitive to the exact position of a feature. A small shift or distortion in the location of a detected edge pattern will likely still fall within the same pooling region, and thus the pooled output remains unchanged. This helps the network generalize better so that a tumor's precise pixel location is less important than its relative structure and context.
+## Code Demo
 
-In our project, pooling is crucial. It ensures that the model focuses on the presence of key diagnostic features (like a tumor's enhancing region) rather than their exact, sub-pixel coordinates, which can vary due to differences in patient positioning or image acquisition.
+### Data Description
 
-### Final layers of a CNN
+The dataset used in this vignette contains 4,600 scanned brain images collected from patients either diagnosed with a brain tumor or confirmed to have no tumor. Each observation includes six columns: an ID, the image filename, the class label (tumor or normal), the file format, the image color mode, and the original image dimensions. The class distribution is relatively balanced, with approximately 55% tumor images and 45% normal images. Most images are stored in JPEG format (98%), with a small number in TIFF or other formats, and the majority use RGB color mode (97%), making the dataset consistent and suitable for CNN-based image classification.
 
-Finally, after convolution, nonlinearity, and pooling, the final layers of a CNN include flattening, the fully connected (or Dense) layer, and regularization. Flattening takes the resulting feature maps and flattens them to a 1-dimensional vector so that they can be used by the final layer to make class predictions. Regularization is a method of regularization used to prevent overfitting. It randomly turns off neurons during training, making sure the model does not become over reliant on specific neurons. The fully connected layer is fed the flattened vector and activated with the sigmoid (our use-case) or softmax functions depending on binary or multiclass classification.
-
-![](img/CNN.png)
-
-Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as the state of the art model archietecture. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).
-
-## CNN for tumor classification code demo
+The image sizes vary substantially, ranging from common dimensions such as 512×512×3 and 225×225×3 to over 3,300 other unique shapes. This diversity in resolution requires preprocessing steps such as resizing and normalization before model training. Overall, the dataset provides a large and realistic set of brain scan images that supports effective training, evaluation, and generalization of deep learning models for tumor detection.
 
 Although the dataset is large and varied in format, a key limitation is that it appears to contain many duplicated or near-duplicated images. Several scans look almost identical, with only small changes in brightness, contrast, or quality, suggesting that some form of augmentation or repeated sampling occurred before the dataset was published. When such a dataset is split into training, validation, and test sets, it becomes likely that similar images end up in multiple subsets. This can make the model performance appear stronger than it truly is because it may encounter images during testing that closely resemble images it effectively saw during training.
 
@@ -300,10 +311,16 @@ p_cm
 ggsave("img/confusion_matrix.png", plot = p_cm, width = 6, height = 5)
 ```
 
+<<<<<<< Updated upstream
 Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs. no tumor), and these are compared to the true labels from the test set. The caret::confusionMatrix() function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn't, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases.
-
+<<<<<<< HEAD
+=======
+=======
+Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs. no tumor), and these are compared to the true labels from the test set. The `caret::confusionMatrix()` function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn't, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases.
+>>>>>>> Stashed changes
 
 ![](img/confusion_matrix.png)
+>>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
 
 ### ROC Curve and AUC
 
@@ -319,8 +336,11 @@ plot(roc_obj)
 ```
 
 The ROC curve provides a visual summary of the model’s ability to distinguish between tumor and non-tumor images across all possible classification thresholds. By plotting sensitivity (true positive rate) against 1 – specificity (false positive rate), the ROC curve illustrates how the model’s performance changes as the decision threshold shifts, highlighting the trade-off between capturing more true tumors and avoiding false alarms. The curve demonstrates strong separation between the two classes, and the resulting AUC value of 0.975 indicates excellent discriminatory performance, meaning the model can correctly rank tumor images above non-tumor images with very high probability.
+<<<<<<< HEAD
+=======
 
 ![](img/roc_curve.png)
+>>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
 
 ### Saving the Model
 
@@ -332,9 +352,12 @@ cat("Model saved to results/cnn_brain_tumor_model.h5\n")
 ```
 
 Finally, we save the trained CNN model so it can be reused without needing to retrain it. We created a results/ folder and save the model in .keras format, which preserves both the architecture and the trained weights. Saving the model ensures that it can be loaded later for inference, further training, or deployment in a clinical or research workflow. This also makes the results reproducible and portable across systems.
+<<<<<<< HEAD
 
 ## Conclusion
 
 In this vignette, we demonstrated how Convolutional Neural Networks can be applied to medical image classification by training a CNN to distinguish between brain tumor and non–tumor X-ray scans. Through preprocessing, data augmentation, and a three-layer convolutional architecture, the model successfully learned meaningful visual patterns and achieved strong evaluation metrics. The model reached a test accuracy of 0.9075 with a relatively low loss of 0.2428, and additional performance assessments such as the confusion matrix and ROC curve indicated excellent class separation and reliable predictive behavior. These results highlight the effectiveness of CNNs for medical binary image classification.
 
-However, an important limitation of this dataset is the presence of substantial oversampling and duplicated or near-duplicated images. Some images were augmented before the dataset was published, so when we split data in training vs testing sets, we could not make sure augmented images were only placed into the training set, so some of these oversampled data ended up in the test set making the test error appear lower than it actually should be. Ideally, all preprocessing or image augmentation is done on training data so that the model can learn to be more robust, and then evaluated on unaltered test images. This oversampling likely contributed to the strong performance metrics we observed, including the high test accuracy and low loss value. While the results appear impressive, they may not fully reflect the model’s ability to generalize to genuinely new brain scan images. This limitation should be kept in mind when interpreting the model's performance, but the CNN still demonstrates promising capability and is a good example of a basic CNN used for image classification on medical data. Future work should involve cleaning the dataset or evaluating the model on a more carefully curated, non-duplicated test set to better assess its true generalization power.
+However, an important limitation of this dataset is the presence of substantial oversampling and duplicated or near-duplicated images. This oversampling likely contributed to the strong performance metrics we observed, including the high test accuracy and low loss value. While the results appear impressive, they may not fully reflect the model’s ability to generalize to genuinely new brain scan images. This limitation should be kept in mind when interpreting the model's performance. Despite this concern, the CNN still demonstrates promising capability and strong overall performance of evaluation metrics, and future work should involve cleaning the dataset or evaluating the model on a more carefully curated, non-duplicated test set to better assess its true generalization power.
+=======
+>>>>>>> 02ce5408f5fb8a0dbbebdb17a85835ff63dc9cc2
