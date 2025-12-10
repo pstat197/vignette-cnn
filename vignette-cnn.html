@@ -20,6 +20,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -67,33 +102,287 @@ ul.task-list li input[type="checkbox"] {
 <p>The topic of our vignette is image classification in the medical setting. We’ll demonstrate using a Convolutional Neural Network (CNN) to classify brain tumor X-ray images into 2 classes: <code>Cancer</code> and <code>Not Cancer</code>. This binary image classification is a classic use-case of how CNNs can be applicable in the medical setting.</p>
 <section id="conceptual-overview" class="level2">
 <h2 class="anchored" data-anchor-id="conceptual-overview">Conceptual Overview</h2>
-<section id="lucas-section" class="level3">
-<h3 class="anchored" data-anchor-id="lucas-section">Lucas’ Section</h3>
-<p>Before CNNs were developed, the standard way to use a Neural Network to train an image classifier was to flatten images into a list of pixels and pass it through a feed-forward neural network in order to predict the class of the image. However, the spatial information of the images are lost with this technique.</p>
-<p>CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They’re able to process images using convolution, which uses a filter to scan one segment of the image grid at a time. The filter is a set of weights (e.g.&nbsp;of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features.</p>
+<p>Before CNNs were developed, the standard way to use a Neural Network to train an image classifier was to flatten images into a list of pixels and pass it through a feed-forward neural network in order to predict the class of the image. The spatial information of the images is lost with this technique and it leads to an explosion of parameters since each neuron in one layer is connected to every neuron in the next layer. Thus, this method is not optimal for high dimensional data, especially in the medical setting where genomic data and images are commonly analyzed.</p>
+<p>CNNs were designed to process Euclidean spaces, treating images as a grid of pixels. They’re able to process images using <strong>convolution</strong>, which uses a filter to scan one segment of the image grid at a time, engaging in <strong>parameter sharing</strong>. The filter is a set of weights (e.g.&nbsp;of size 3x3) that is slid across the image grid, calculating the dot product of the filter and the image at different locations. The output is a feature map, which each filter outputs, each looking for different features. So, instead of learning separate weights for every pixel position, a convolutional layer uses these small sets of learnable filters, essentially sharing these parameters with the entire image space and decreasing the total number of parameters.</p>
 <p><img src="img/Convolution.png" class="img-fluid"></p>
-<p>For example, one convolutional layer in a CNN can have multiple filters, each looking to extract different aspects of the brain x-ray image (e.g.&nbsp;horizontal edges, vertical edges, color contrasts). The key idea is that parameters are shared: the filter with its weights is slid across the entire image, not just part of it, so these weights are essentially shared with the whole input image instead of assigning a parameter to learn each pixel of the image. Thus, convolution helps to generalize features across the whole image field making CNNs robust to variations in the location of objects and to reduce the number of trainable parameters of the Neural Network (reduction to the number of filter weights instead of learning separate weights for each location).</p>
-<p>After each convolution operation (convolutional layer of the network), nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer.</p>
-<p>Additionally, CNNs do pooling as downsampling to reduce the size of the data, where feature maps are essentially subsampled. Each subsample is turned into a single pixel value with max pooling or average pooling, taking the maximum pixel value or average pixel value.</p>
+<p>Specifically, in our brain tumor detection context, this parameter sharing feature allows the CNN model to efficiently learn fundamental visual patterns from X-ray images without requiring an impossibly large dataset or computational power. It forces the model to focus on what features are present rather than memorizing their exact spatial coordinates.</p>
+<p>For example, one convolutional layer in a CNN can have multiple filters, each looking to extract different aspects of the brain x-ray image (e.g.&nbsp;horizontal edges, vertical edges, color contrasts). Once again, the main idea is that parameters are shared: so the filter is slid across the entire image, not just part of it. This enables convolution to generalize features across the whole image field making CNNs robust to variations in the location of objects and to reduce the number of trainable parameters of the Neural Network (reduction to the number of filter weights instead of learning separate weights for each location).</p>
+<section id="hierarchical-feature-learning" class="level3">
+<h3 class="anchored" data-anchor-id="hierarchical-feature-learning">Hierarchical Feature Learning</h3>
+<p>CNNs build a hierarchical representation of images throughout its layers. For example,</p>
+<p><strong>Early Convolutional Layers:</strong></p>
+<p>The first layers are primed to learn the most basic building blocks of visual data. Their small filters act as feature detectors for simple patterns: oriented edges (horizontal, vertical, diagonal), color transitions, blobs, and basic textures. In an MRI scan, these correspond to the gradients between white matter, gray matter, and cerebrospinal fluid, or the initial texture of tissue.</p>
+<p><strong>Middle Convolutional Layers:</strong></p>
+<p>As we go deeper, the network combines the simple features from earlier layers into more complex structures. Neurons in these layers might respond to combinations of edges and textures that form shapes like curves, corners, or specific repetitive patterns. For brain tumor analysis, these layers could learn to identify common radiological “parts” such as a mass border/rim, or patterns surrounding a lesion.</p>
+<p><strong>Late Convolutional Layers:</strong></p>
+<p>The final convolutional layers assemble the mid-level parts into complete, more meaningful objects. Here, the feature maps become task-specific, capturing the overall spatial configuration and texture of a specific tumor type or healthy tissue.</p>
+</section>
+<section id="nonlinearity-and-pooling" class="level3">
+<h3 class="anchored" data-anchor-id="nonlinearity-and-pooling">Nonlinearity and Pooling</h3>
+<p>After each convolutional layer of the network, nonlinearity is applied so the network can learn complex nonlinear patterns. We typically use ReLu as an activation function, which is done before feeding all the feature maps learned in the previous layer to the next convolutional layer.</p>
+<p>Pooling layers, placed between convolutional layers, serve two primary purposes.</p>
+<p>Pooling is used as downsampling to reduce the size of the data, where feature maps are essentially subsampled. Each subsample is turned into a single pixel value with max pooling or average pooling (taking the maximum pixel value or average pixel value of the subsamples). This progressively decreases the number of parameters in the network, controlling computational cost and mitigating overfitting.</p>
 <p><img src="img/Pooling.png" class="img-fluid"></p>
-<p>Finally, after convolution, nonlinearity, and pooling, the final two layer of a CNN include flattening and the fully connected (or Dense) layer. Flattening takes the resulting feature maps and flattens them to a 1-dimensional vector so that they can be used by the final layer to make class predictions. The fully connected layer is fed this 1-dimensional vector and activated with the sigmoid (our use-case) or softmax functions depending on binary or multiclass classification.</p>
+<p>Second, by summarizing a local region, pooling makes the network less sensitive to the exact position of a feature. A small shift or distortion in the location of a detected edge pattern will likely still fall within the same pooling region, and thus the pooled output remains unchanged. This helps the network generalize better so that a tumor’s precise pixel location is less important than its relative structure and context.</p>
+<p>In our project, pooling is crucial. It ensures that the model focuses on the presence of key diagnostic features (like a tumor’s enhancing region) rather than their exact, sub-pixel coordinates, which can vary due to differences in patient positioning or image acquisition.</p>
+</section>
+<section id="final-layers-of-a-cnn" class="level3">
+<h3 class="anchored" data-anchor-id="final-layers-of-a-cnn">Final layers of a CNN</h3>
+<p>Finally, after convolution, nonlinearity, and pooling, the final layers of a CNN include flattening, the fully connected (or Dense) layer, and regularization. Flattening takes the resulting feature maps and flattens them to a 1-dimensional vector so that they can be used by the final layer to make class predictions. Regularization is a method of regularization used to prevent overfitting. It randomly turns off neurons during training, making sure the model does not become over reliant on specific neurons. The fully connected layer is fed the flattened vector and activated with the sigmoid (our use-case) or softmax functions depending on binary or multiclass classification.</p>
 <p><img src="img/CNN.png" class="img-fluid"></p>
-<p>Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as state of the art. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).</p>
-</section>
-<section id="janices-section" class="level3">
-<h3 class="anchored" data-anchor-id="janices-section">Janice’s Section</h3>
+<p>Popular CNN architectures include VGGNet and ResNet (up to 152 layers), with ResNet considered as the state of the art model archietecture. For the purpose of this demonstration, we will introduce a basic CNN with 3 convolutional layers (10 total).</p>
 </section>
 </section>
-<section id="code-demo" class="level2">
-<h2 class="anchored" data-anchor-id="code-demo">Code Demo</h2>
-<section id="kaeyas-section" class="level3">
-<h3 class="anchored" data-anchor-id="kaeyas-section">Kaeya’s Section</h3>
-<p>up to line 176</p>
+<section id="cnn-for-tumor-classification-code-demo" class="level2">
+<h2 class="anchored" data-anchor-id="cnn-for-tumor-classification-code-demo">CNN for tumor classification code demo</h2>
+<p>Although the dataset is large and varied in format, a key limitation is that it appears to contain many duplicated or near-duplicated images. Several scans look almost identical, with only small changes in brightness, contrast, or quality, suggesting that some form of augmentation or repeated sampling occurred before the dataset was published. When such a dataset is split into training, validation, and test sets, it becomes likely that similar images end up in multiple subsets. This can make the model performance appear stronger than it truly is because it may encounter images during testing that closely resemble images it effectively saw during training.</p>
+<section id="environment-data-setup" class="level3">
+<h3 class="anchored" data-anchor-id="environment-data-setup">Environment / Data Setup</h3>
+<p>We first start by loading the libraries necessary to run a CNN.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(keras)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tensorflow)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(caret)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(reticulate)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pROC)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fs)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rsample)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We then upload the data. The dataset that we use contains labeled medical MRI brain scans used for tumor classification (binary variable). Each row represents a single image and includes ifnormation about the file including the name of the image, the class (tumor or normal), the format (png, jpeg, tif), the RGB color mode, and the shape/resolution of the image.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>metadata <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/metadata.csv.xls"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(metadata)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(metadata)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We split the dataset into an 80/20 train–test split.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">11272025</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>train_index <span class="ot">&lt;-</span> <span class="fu">createDataPartition</span>(metadata<span class="sc">$</span>class, <span class="at">p =</span> <span class="fl">0.8</span>, <span class="at">list =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>train_data <span class="ot">&lt;-</span> metadata[train_index, ]</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>test_data  <span class="ot">&lt;-</span> metadata[<span class="sc">-</span>train_index, ]</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(train_data)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(test_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>After we have split the dataset, we create directories to store our training and testing brain scan images.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dir_create</span>(<span class="st">"data/images"</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dir_create</span>(<span class="st">"data/train_images"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">dir_create</span>(<span class="st">"data/test_images"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Copy each file based on split into training and test sets</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">file_copy</span>(</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">path =</span> <span class="fu">paste0</span>(<span class="st">"data/images/"</span>, train_data<span class="sc">$</span>image),</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">new_path =</span> <span class="fu">paste0</span>(<span class="st">"data/train_images/"</span>, train_data<span class="sc">$</span>image)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="fu">file_copy</span>(</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">path =</span> <span class="fu">paste0</span>(<span class="st">"data/images/"</span>, test_data<span class="sc">$</span>image),</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">new_path =</span> <span class="fu">paste0</span>(<span class="st">"data/test_images/"</span>, test_data<span class="sc">$</span>image)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
-<section id="sophies-section" class="level3">
-<h3 class="anchored" data-anchor-id="sophies-section">Sophie’s Section</h3>
-<p>past line 176</p>
+<section id="preprocessing" class="level3">
+<h3 class="anchored" data-anchor-id="preprocessing">Preprocessing</h3>
+<p>Because neural networks require all input images to have the same dimensions, we resize all images to a target size of 224x224. We also set the batch size to 32. The batch size controls how many images the model processes at each training step before updating its weights. Processing the images in smaller batches helps improve training stability and efficiency.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>img_height <span class="ot">&lt;-</span> <span class="dv">224</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>img_width  <span class="ot">&lt;-</span> <span class="dv">224</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>batch_size <span class="ot">&lt;-</span> <span class="dv">32</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The image generator loads training images and applies data augmentation like rotating or shifting the image. Augmentation increases the diversity of the training set, helping the model avoid overfitting and improving its ability to generalize new images.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>train_gen <span class="ot">&lt;-</span> <span class="fu">image_data_generator</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">rescale =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">255</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">rotation_range =</span> <span class="dv">10</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">width_shift_range =</span> <span class="fl">0.1</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">height_shift_range =</span> <span class="fl">0.1</span>,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">horizontal_flip =</span> <span class="cn">TRUE</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We also create a testing generator with no augmentation of images so that the model is tested on clean data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>test_gen <span class="ot">&lt;-</span> <span class="fu">image_data_generator</span>(<span class="at">rescale =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">255</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The flow_images_from_dataframe() reads in the images in batches from the training and test folders, apply the respective preprocessing (resizing and augmentation if needed), and record the corresponding true labels from the uploaded data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>train_flow <span class="ot">&lt;-</span> <span class="fu">flow_images_from_dataframe</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">dataframe =</span> train_data,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">directory =</span> <span class="st">"data/train_images"</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">x_col =</span> <span class="st">"image"</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">y_col =</span> <span class="st">"class"</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">generator =</span> train_gen,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">target_size =</span> <span class="fu">c</span>(img_height, img_width),</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">batch_size =</span> batch_size,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">class_mode =</span> <span class="st">"binary"</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co"># flow images from the test dataframe</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>test_flow <span class="ot">&lt;-</span> <span class="fu">flow_images_from_dataframe</span>(</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">dataframe =</span> test_data,</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">directory =</span> <span class="st">"data/test_images"</span>,</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">x_col =</span> <span class="st">"image"</span>,</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">y_col =</span> <span class="st">"class"</span>,</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">generator =</span> test_gen,</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">target_size =</span> <span class="fu">c</span>(img_height, img_width),</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">batch_size =</span> batch_size,</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">class_mode =</span> <span class="st">"binary"</span>,</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">shuffle =</span> <span class="cn">FALSE</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
+<section id="build-cnn-model" class="level3">
+<h3 class="anchored" data-anchor-id="build-cnn-model">Build CNN Model</h3>
+<p>This CNN has three layers for feature extraction starting with simple edges/textures, and then moving to more complex patterns. After this, the model uses flatten layer and then dense layer to combine the features. There is also a dropout layer to reduce overfitting and help the model better generalize. Finally, theres a sigmoid output layer to generate aprobability between 0 and 1, allowing the model to perform binary classification.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">keras_model_sequential</span>(<span class="fu">list</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 32 convolution filters of size 3x3</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_conv_2d</span>(<span class="at">filters =</span> <span class="dv">32</span>, <span class="at">kernel_size =</span> <span class="dv">3</span>, <span class="at">activation =</span> <span class="st">"relu"</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">input_shape =</span> <span class="fu">c</span>(img_height, img_width, <span class="dv">3</span>)),</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_max_pooling_2d</span>(<span class="at">pool_size =</span> <span class="dv">2</span>),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 64 filters</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_conv_2d</span>(<span class="at">filters =</span> <span class="dv">64</span>, <span class="at">kernel_size =</span> <span class="dv">3</span>, <span class="at">activation =</span> <span class="st">"relu"</span>),</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_max_pooling_2d</span>(<span class="at">pool_size =</span> <span class="dv">2</span>),</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># 128 filters</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_conv_2d</span>(<span class="at">filters =</span> <span class="dv">128</span>, <span class="at">kernel_size =</span> <span class="dv">3</span>, <span class="at">activation =</span> <span class="st">"relu"</span>),</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_max_pooling_2d</span>(<span class="at">pool_size =</span> <span class="dv">2</span>),</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Flatten and dense layers</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_flatten</span>(),</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_dense</span>(<span class="at">units =</span> <span class="dv">128</span>, <span class="at">activation =</span> <span class="st">"relu"</span>),</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_dropout</span>(<span class="at">rate =</span> <span class="fl">0.4</span>),</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Output layer</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">layer_dense</span>(<span class="at">units =</span> <span class="dv">1</span>, <span class="at">activation =</span> <span class="st">"sigmoid"</span>)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Compile the model</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>model<span class="sc">$</span><span class="fu">compile</span>(</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">optimizer =</span> <span class="st">"adam"</span>,</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">loss =</span> <span class="st">"binary_crossentropy"</span>,</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">metrics =</span> <span class="fu">list</span>(<span class="st">"accuracy"</span>)</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>model</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="train-cnn-model" class="level3">
+<h3 class="anchored" data-anchor-id="train-cnn-model">Train CNN Model</h3>
+<p>The model is then trained for 15 epochs using the training generator. During each epoch, the model is also evaluated on the test generator, and both the training loss and accuracy and test loss and accuracy are reported.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>epochs <span class="ot">&lt;-</span> <span class="dv">15</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>history <span class="ot">&lt;-</span> model<span class="sc">$</span><span class="fu">fit</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  train_flow,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">steps_per_epoch =</span> <span class="fu">r_to_py</span>(<span class="fu">as.integer</span>(<span class="fu">ceiling</span>(<span class="fu">nrow</span>(train_data) <span class="sc">/</span> batch_size))),</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">validation_data =</span> test_flow,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">validation_steps =</span> <span class="fu">r_to_py</span>(<span class="fu">as.integer</span>(<span class="fu">ceiling</span>(<span class="fu">nrow</span>(test_data) <span class="sc">/</span> batch_size))),</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">epochs =</span> <span class="fu">r_to_py</span>(<span class="fu">as.integer</span>(epochs))</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert Python history to R list</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>history_values <span class="ot">&lt;-</span> <span class="fu">py_to_r</span>(history<span class="sc">$</span>history)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We then plot the loss and accuracy for each epoch.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="dv">1</span><span class="sc">:</span>epochs, history_values<span class="sc">$</span>loss, <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lwd =</span> <span class="dv">2</span>,</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Epoch"</span>, <span class="at">ylab =</span> <span class="st">"Loss"</span>, <span class="at">ylim =</span> <span class="fu">range</span>(<span class="fu">c</span>(history_values<span class="sc">$</span>loss, history_values<span class="sc">$</span>val_loss)))</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(<span class="dv">1</span><span class="sc">:</span>epochs, history_values<span class="sc">$</span>val_loss, <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"topright"</span>, <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"Training Loss"</span>, <span class="st">"Validation Loss"</span>),</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="dv">1</span><span class="sc">:</span>epochs, history_values<span class="sc">$</span>accuracy, <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">col =</span> <span class="st">"blue"</span>, <span class="at">lwd =</span> <span class="dv">2</span>,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">"Epoch"</span>, <span class="at">ylab =</span> <span class="st">"Accuracy"</span>, <span class="at">ylim =</span> <span class="fu">range</span>(<span class="fu">c</span>(history_values<span class="sc">$</span>accuracy, history_values<span class="sc">$</span>val_accuracy)))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(<span class="dv">1</span><span class="sc">:</span>epochs, history_values<span class="sc">$</span>val_accuracy, <span class="at">col =</span> <span class="st">"red"</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">legend</span>(<span class="st">"bottomright"</span>, <span class="at">legend =</span> <span class="fu">c</span>(<span class="st">"Training Accuracy"</span>, <span class="st">"Validation Accuracy"</span>),</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"red"</span>), <span class="at">lwd =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="evaluating-the-model" class="level3">
+<h3 class="anchored" data-anchor-id="evaluating-the-model">Evaluating the Model</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>scores <span class="ot">&lt;-</span> model<span class="sc">$</span><span class="fu">evaluate</span>(test_flow)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert Python evaluation output to R list</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>scores_r <span class="ot">&lt;-</span> <span class="fu">py_to_r</span>(scores)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>test_loss <span class="ot">&lt;-</span> scores_r[[<span class="dv">1</span>]]</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>test_accuracy <span class="ot">&lt;-</span> scores_r[[<span class="dv">2</span>]]</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Test loss:"</span>, test_loss, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Test accuracy:"</span>, test_accuracy, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This section evaluates the trained CNN on the test dataset to measure how well it generalizes to unseen images. The model$evaluate() function computes two key metrics: test loss, which measures overall prediction error, and test accuracy, which measures the proportion of correctly classified images. By converting the Python output into an R list, we extract and print these values. A high accuracy value of 0.9075081 and generally low loss value of 0.2428377 indicate that the model has learned meaningful patterns from the training data and performs reliably on new samples from the test data.</p>
+</section>
+<section id="confusion-matrix" class="level3">
+<h3 class="anchored" data-anchor-id="confusion-matrix">Confusion Matrix</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get predicted probabilities</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>pred_probs <span class="ot">&lt;-</span> model<span class="sc">$</span><span class="fu">predict</span>(test_flow)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert probabilities to class labels (0 or 1)</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>pred_labels <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(pred_probs <span class="sc">&gt;=</span> <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>true_labels <span class="ot">&lt;-</span> test_flow<span class="sc">$</span>classes </span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>cm <span class="ot">&lt;-</span> caret<span class="sc">::</span><span class="fu">confusionMatrix</span>(<span class="fu">factor</span>(pred_labels), <span class="fu">factor</span>(true_labels), </span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>                             <span class="at">positive =</span> <span class="st">"1"</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot confusion matrix heatmap using ggplot</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>cm_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(cm_table)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(cm_df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Predicted"</span>, <span class="st">"Actual"</span>, <span class="st">"Freq"</span>)</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>p_cm <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(cm_df, <span class="fu">aes</span>(<span class="at">x =</span> Actual, <span class="at">y =</span> Predicted, <span class="at">fill =</span> Freq)) <span class="sc">+</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> Freq), <span class="at">color =</span> <span class="st">"white"</span>, <span class="at">size =</span> <span class="dv">6</span>) <span class="sc">+</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Confusion Matrix"</span>, <span class="at">x =</span> <span class="st">"Actual"</span>, <span class="at">y =</span> <span class="st">"Predicted"</span>) <span class="sc">+</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>p_cm</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave</span>(<span class="st">"img/confusion_matrix.png"</span>, <span class="at">plot =</span> p_cm, <span class="at">width =</span> <span class="dv">6</span>, <span class="at">height =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Along with computing test accuracy and loss, we can also assess model performance at the prediction level by examining the confusion matrix, which shows how many images were correctly or incorrectly classified. First, predicted probabilities are converted into binary labels (0 or 1 for tumor vs.&nbsp;no tumor), and these are compared to the true labels from the test set. The caret::confusionMatrix() function provides precision, recall, sensitivity, specificity, and an overall accuracy score. To make the results easier to visualize, we convert the confusion matrix into a dataframe and generate a heatmap with ggplot2. This visualization highlights where the model succeeds and where it makes mistakes, helping diagnose model weaknesses or class imbalance. As we can see from the visualization, our model correctly identified 489 images with tumors, and 345 images without tumors. Additionally, the model only misclassified a small amount of images, incorrectly classifying 72 images to have a tumor when they didn’t, and 13 images to not have a tumor when they in fact did. The confusion matrix indicates that the model correctly classified the majority of images, resulting in a high overall accuracy despite some misclassifications. Moreover, in a medical context, the model’s tendency to flag more false positives than false negatives is preferable, as it errs on the side of caution by reducing the risk of missing actual tumor cases.</p>
+<p><img src="img/confusion_matrix.png" class="img-fluid"></p>
+</section>
+<section id="roc-curve-and-auc" class="level3">
+<h3 class="anchored" data-anchor-id="roc-curve-and-auc">ROC Curve and AUC</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>roc_obj <span class="ot">&lt;-</span> <span class="fu">roc</span>(<span class="at">response =</span> true_labels, <span class="at">predictor =</span> <span class="fu">as.numeric</span>(pred_probs))</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>auc_val <span class="ot">&lt;-</span> <span class="fu">auc</span>(roc_obj)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"AUC:"</span>, auc_val, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 0.9750686</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="fu">png</span>(<span class="st">"img/roc_curve.png"</span>, <span class="at">width =</span> <span class="dv">900</span>, <span class="at">height =</span> <span class="dv">700</span>)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(roc_obj)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The ROC curve provides a visual summary of the model’s ability to distinguish between tumor and non-tumor images across all possible classification thresholds. By plotting sensitivity (true positive rate) against 1 – specificity (false positive rate), the ROC curve illustrates how the model’s performance changes as the decision threshold shifts, highlighting the trade-off between capturing more true tumors and avoiding false alarms. The curve demonstrates strong separation between the two classes, and the resulting AUC value of 0.975 indicates excellent discriminatory performance, meaning the model can correctly rank tumor images above non-tumor images with very high probability.</p>
+<p><img src="img/roc_curve.png" class="img-fluid"></p>
+</section>
+<section id="saving-the-model" class="level3">
+<h3 class="anchored" data-anchor-id="saving-the-model">Saving the Model</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dir_create</span>(<span class="st">"results"</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>model<span class="sc">$</span><span class="fu">save</span>(<span class="st">"results/cnn_brain_tumor_model.keras"</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Model saved to results/cnn_brain_tumor_model.h5</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Finally, we save the trained CNN model so it can be reused without needing to retrain it. We created a results/ folder and save the model in .keras format, which preserves both the architecture and the trained weights. Saving the model ensures that it can be loaded later for inference, further training, or deployment in a clinical or research workflow. This also makes the results reproducible and portable across systems.</p>
+</section>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>In this vignette, we demonstrated how Convolutional Neural Networks can be applied to medical image classification by training a CNN to distinguish between brain tumor and non–tumor X-ray scans. Through preprocessing, data augmentation, and a three-layer convolutional architecture, the model successfully learned meaningful visual patterns and achieved strong evaluation metrics. The model reached a test accuracy of 0.9075 with a relatively low loss of 0.2428, and additional performance assessments such as the confusion matrix and ROC curve indicated excellent class separation and reliable predictive behavior. These results highlight the effectiveness of CNNs for medical binary image classification.</p>
+<p>However, an important limitation of this dataset is the presence of substantial oversampling and duplicated or near-duplicated images. Some images were augmented before the dataset was published, so when we split data in training vs testing sets, we could not make sure augmented images were only placed into the training set, so some of these oversampled data ended up in the test set making the test error appear lower than it actually should be. Ideally, all preprocessing or image augmentation is done on training data so that the model can learn to be more robust, and then evaluated on unaltered test images. This oversampling likely contributed to the strong performance metrics we observed, including the high test accuracy and low loss value. While the results appear impressive, they may not fully reflect the model’s ability to generalize to genuinely new brain scan images. This limitation should be kept in mind when interpreting the model’s performance, but the CNN still demonstrates promising capability and is a good example of a basic CNN used for image classification on medical data. Future work should involve cleaning the dataset or evaluating the model on a more carefully curated, non-duplicated test set to better assess its true generalization power.</p>
 </section>
 
 </main>
